@@ -33,7 +33,7 @@ jobs:
         SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
 
         # Generate PAT with Read-Only access to all repos in your GH ORG
-        PAT: ${{ secrets.PAT }}
+        PAT: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
 
         # Generate PAT with permissions to initiate repository dispatch in AppSec repo in your AppSec GH ORG
         PAT_REPOSITORY_DISPATCH_APPSEC_REPO: ${{ secrets.PAT_REPOSITORY_DISPATCH_APPSEC_REPO }}
