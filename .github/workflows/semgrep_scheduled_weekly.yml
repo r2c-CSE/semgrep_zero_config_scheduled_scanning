@@ -33,7 +33,7 @@ jobs:
         SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
 
         # Generate PAT with Read-Only access to all repos in your GH ORG
-        PAT: ${{ secrets.PAT }}
+        PAT: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
 
         # Generate PAT with permissions to initiate repository dispatch in AppSec repo in your AppSec GH ORG
         PAT_REPOSITORY_DISPATCH_APPSEC_REPO: ${{ secrets.PAT_REPOSITORY_DISPATCH_APPSEC_REPO }}
@@ -43,6 +43,9 @@ jobs:
 
         # Name of the AppSec Org where the scans will be performed. This can be the same as the Org where other repos are
         APPSEC_ORG_WHERE_SCANS_DONE: ${{ vars.APPSEC_ORG_WHERE_SCANS_DONE }}
+
+        # Wait time (in seconds) between triggering Semgrep Scans 
+        WAIT_TIME_BETWEEN_SCANS: ${{ vars.WAIT_TIME_BETWEEN_SCANS }}
 
       run: |
         import requests
@@ -120,8 +123,9 @@ jobs:
             print(response.status_code)
             # print(response.status_code)
             # print(response.json())
-        
-            time.sleep(30) #sleep for 10 minutes before starting next scan
+                    
+            wait = os.environ['WAIT_TIME_BETWEEN_SCANS']
+            time.sleep(wait) #sleep for 10 minutes before starting next scan
           else:
             print(f'The value "{repo_name}" does not exist in the weekly scan list.')
           
