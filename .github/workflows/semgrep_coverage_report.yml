@@ -28,7 +28,7 @@ jobs:
     - name: Get list of repositories
       env:
         # Generate PAT with Read-Only access to all repos in your GH ORG
-        PAT: ${{ secrets.PAT }}
+        PAT_READ_ONLY_CUSTOMER_REPO: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
 
       run: |
         import requests
@@ -47,7 +47,7 @@ jobs:
         # Extract the organization name
         org_name = full_repo_name.split('/')[0]
         print("Organization Name:", org_name)
-        pat = os.environ['PAT']
+        pat = os.environ['PAT_READ_ONLY_CUSTOMER_REPO']
         headers = {'Authorization': f'token {pat}'}
 
         response = requests.get(f'https://api.github.com/orgs/{org_name}/repos', headers=headers)
