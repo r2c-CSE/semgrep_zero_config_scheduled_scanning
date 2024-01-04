@@ -44,6 +44,9 @@ jobs:
         # Name of the AppSec Org where the scans will be performed. This can be the same as the Org where other repos are
         APPSEC_ORG_WHERE_SCANS_DONE: ${{ vars.APPSEC_ORG_WHERE_SCANS_DONE }}
 
+        # Wait time (in seconds) between triggering Semgrep Scans 
+        WAIT_TIME_BETWEEN_SCANS: ${{ vars.WAIT_TIME_BETWEEN_SCANS }}
+
       run: |
         import requests
         import os
