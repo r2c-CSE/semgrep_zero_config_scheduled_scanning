@@ -126,7 +126,8 @@ jobs:
 
             wait_time = os.environ['WAIT_TIME_BETWEEN_SCANS']
             print(f'wait time is {wait_time}')
-            time.sleep(wait_time) #sleep for 10 minutes before starting next scan
+            print(f'type of wait time is {type(wait_time)}')
+            time.sleep(int(wait_time)) #sleep for 10 minutes before starting next scan
           else:
             print(f'The value "{repo_name}" does not exist in the daily scan list.')
           
