@@ -125,7 +125,7 @@ jobs:
             # print(response.json())
                     
             wait_time = os.environ['WAIT_TIME_BETWEEN_SCANS']
-            time.sleep(int(wait_time)) #sleep for 10 minutes before starting next scan
+            time.sleep(int(wait_time)) #sleep for xx seconds before starting next scan
           else:
             print(f'The value "{repo_name}" does not exist in the weekly scan list.')
           
