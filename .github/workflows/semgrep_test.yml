@@ -33,7 +33,7 @@ jobs:
         PAT: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
 
         # Generate PAT with permissions to initiate repository dispatch in AppSec repo in your AppSec GH ORG
-        PAT_REPOSITORY_DISPATCH_APPSEC_REPO: ${{ secrets.GITHUB_TOKEN }}
+        PAT_REPOSITORY_DISPATCH_APPSEC_REPO: ${{ secrets.GITHUB_TOKEN }}  #Bearer ${{ secrets.GITHUB_TOKEN }}
 
         # Name of the AppSec Repo where the scans will be performed
         APPSEC_REPO_WHERE_SCANS_DONE: ${{ vars.APPSEC_REPO_WHERE_SCANS_DONE }}
@@ -101,7 +101,8 @@ jobs:
             print(f"token = os.environ['PAT_REPOSITORY_DISPATCH_CUSTOMER_REPO']: {token}")
             # token = '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'
             headers = {
-                'Authorization': f'Bearer {token}',
+                'Authorization': f'Bearer {token}', 
+                # 'Authorization': f'Bearer ${{ secrets.GITHUB_TOKEN }}
                 'Accept': 'application/vnd.github.v3+json'
             }
         
