@@ -35,8 +35,10 @@ jobs:
         # Generate PAT with Read-Only access to all repos in your GH ORG
         PAT: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
 
+        # https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+        PAT_REPOSITORY_DISPATCH_APPSEC_REPO: ${{ secrets.GITHUB_TOKEN }}
         # Generate PAT with permissions to initiate repository dispatch in AppSec repo in your AppSec GH ORG
-        PAT_REPOSITORY_DISPATCH_APPSEC_REPO: ${{ secrets.PAT_REPOSITORY_DISPATCH_APPSEC_REPO }}
+        # PAT_REPOSITORY_DISPATCH_APPSEC_REPO: ${{ secrets.PAT_REPOSITORY_DISPATCH_APPSEC_REPO }}
 
         # Name of the AppSec Repo where the scans will be performed
         APPSEC_REPO_WHERE_SCANS_DONE: ${{ vars.APPSEC_REPO_WHERE_SCANS_DONE }}
@@ -73,7 +75,22 @@ jobs:
         # Replace 'your_file.csv' with the path to your CSV file
         csv_file = 'daily.csv'
         df = pd.read_csv(csv_file)
-        
+
+        # GitHub API URL for repository_dispatch
+        scanning_repo = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']
+        print(f"repository = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']: {scanning_repo}")
+        scanning_org_name = os.environ['APPSEC_ORG_WHERE_SCANS_DONE']
+        print(f"org_name = os.environ['APPSEC_ORG_WHERE_SCANS_DONE']: {scanning_org_name}")
+        url = f'https://api.github.com/repos/{scanning_org_name}/{scanning_repo}/dispatches'
+    
+        # Headers for the request
+        # token below allows to make Repository Dispatch calls to the GH repo/ GH Org where the scans will be done
+        token = os.environ['PAT_REPOSITORY_DISPATCH_APPSEC_REPO']
+        headers = {
+            'Authorization': f'token {token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+                
         for repo in repos:			
           
           repo_name = repo['name']
@@ -88,32 +105,11 @@ jobs:
             print(f"Repo Name: {repo_name}, Repo URL: {repo_url}")
   
         
-            # GitHub API URL for repository_dispatch
-            scanning_repo = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']
-            print(f"repository = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']: {scanning_repo}")
-            # repository = 'nn-zcs'
-            scanning_org_name = os.environ['APPSEC_ORG_WHERE_SCANS_DONE']
-            print(f"org_name = os.environ['APPSEC_ORG_WHERE_SCANS_DONE']: {scanning_org_name}")
-            # org_name = 'nitinNayar'
-            url = f'https://api.github.com/repos/{scanning_org_name}/{scanning_repo}/dispatches'
-            # https://api.github.com/repos/nitinNayar/nn-zcs/dispatches \ -d '{"event_type": "clone-repo-event", "client_payload": {"repository_name": "ssc-nnayar-r2c-mojito", "git_url": "https://github.com/nn-ssc-scans/ssc-nnayar-r2c-mojito.git", "pat": "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"}}'
-        
-            # Headers for the request
-            # token below allows to make Repository Dispatch calls to the GH repo/ GH Org where the scans will be done
-            token = os.environ['PAT_REPOSITORY_DISPATCH_APPSEC_REPO']
-            print(f"token = os.environ['PAT_REPOSITORY_DISPATCH_CUSTOMER_REPO']: {token}")
-            # token = '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'
-            headers = {
-                'Authorization': f'token {token}',
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        
             # Payload for the repository_dispatch event
             # Change 'event_type' and 'client_payload' as per your requirements			    
             payload = {
                 'event_type': 'zcs-event',
                 'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "git_url": repo_clone_url }
-                # 'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "git_url": repo_clone_url, "pat": "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" }
             }
         
             # Make the POST request
