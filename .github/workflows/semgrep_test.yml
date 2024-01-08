@@ -106,10 +106,8 @@ jobs:
             # token below allows to make Repository Dispatch calls to the GH repo/ GH Org where the scans will be done
             token = os.environ['PAT_REPOSITORY_DISPATCH_APPSEC_REPO']
             print(f"token = os.environ['PAT_REPOSITORY_DISPATCH_CUSTOMER_REPO']: {token}")
-            # token = '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'
             headers = {
                 'Authorization': f'Bearer {token}', 
-                # 'Authorization': f'Bearer ${{ secrets.GITHUB_TOKEN }}
                 'Accept': 'application/vnd.github.v3+json'
             }
         
@@ -118,7 +116,6 @@ jobs:
             payload = {
                 'event_type': 'zcs-event',
                 'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "git_url": repo_clone_url }
-                # 'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "git_url": repo_clone_url, "pat": "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" }
             }
         
             # Make the POST request
