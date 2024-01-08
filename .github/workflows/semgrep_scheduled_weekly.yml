@@ -82,7 +82,7 @@ jobs:
         logging.debug("Response Code: %s", response.status_code)
 
         # Replace 'your_file.csv' with the path to your CSV file
-        csv_file = 'daily.csv'
+        csv_file = 'weekly.csv'
         df = pd.read_csv(csv_file)
 
         # GitHub API URL for repository_dispatch
@@ -109,7 +109,7 @@ jobs:
           repo_name = repo['name']
           # Check if the value exists in any cell of the DataFrame
           if df.isin([repo_name]).any().any():
-            logging.info('The value "%s" exists in the daily scan list', repo_name)              
+            logging.info('The value "%s" exists in the weekly scan list', repo_name)              
             repo_full_name = repo['full_name']
             repo_branch = repo['default_branch']
   
@@ -135,6 +135,6 @@ jobs:
             logging.debug('wait time is: %s', wait_time)
             time.sleep(int(wait_time)) #sleep for XX seconds before starting next scan
           else:
-            logging.info('The value "%s" does not exist in the daily scan list', repo_name)
+            logging.info('The value "%s" does not exist in the weekly scan list', repo_name)
           
       shell: python
