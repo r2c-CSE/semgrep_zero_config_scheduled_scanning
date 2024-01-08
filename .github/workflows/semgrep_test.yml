@@ -73,8 +73,21 @@ jobs:
         pat = os.environ['PAT']
         headers = {'Authorization': f'token {pat}'}
 
-        response = requests.get(f'https://api.github.com/orgs/{org_name}/repos', headers=headers)
-        repos = response.json()
+        repos = []
+        page = 1
+        while True:
+            url = f'https://api.github.com/orgs/{org_name}/repos?page={page}&per_page=100'
+            response = requests.get(url, headers=headers)
+            logging.debug("Requesting list of repos in Org: %s, page: %s" ,org_name, page)
+            logging.debug("Response Code: %s", response.status_code)
+            page_repos = response.json()
+            if not page_repos:
+                break
+            repos.extend(page_repos)
+            page += 1
+        
+        # response = requests.get(f'https://api.github.com/orgs/{org_name}/repos', headers=headers)
+        # repos = response.json()
         logging.debug("Requesting list of repos in Org: %s" ,org_name)
         logging.debug("Response Code: %s", response.status_code)
 
