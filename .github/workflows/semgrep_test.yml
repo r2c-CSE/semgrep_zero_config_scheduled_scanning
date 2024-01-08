@@ -71,44 +71,45 @@ jobs:
 
         response = requests.get(f'https://api.github.com/orgs/{org_name}/repos', headers=headers)
         repos = response.json()
-        logging.debug(f"Requesting list of repos in Org: {org_name}")
-        logging.debug(f"Response Code: {response.status_code}")
+        logging.debug("Requesting list of repos in Org: %s" ,org_name)
+        logging.debug("Response Code: %s", response.status_code)
 
         # Replace 'your_file.csv' with the path to your CSV file
         csv_file = 'daily.csv'
         df = pd.read_csv(csv_file)
+
+        # GitHub API URL for repository_dispatch
+        scanning_repo = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']
+        logging.info("APPSEC_REPO_WHERE_SCANS_DONE: %s", scanning_repo)
+        
+        scanning_org_name = os.environ['APPSEC_ORG_WHERE_SCANS_DONE']
+        logging.info("APPSEC_ORG_WHERE_SCANS_DONE: %s", scanning_org_name)
+
+        repo_dispatch_url = f'https://api.github.com/repos/{scanning_org_name}/{scanning_repo}/dispatches'
+        logging.debug("Repo Dispatch URL: %s", repo_dispatch_url)
+          
+        # Headers for the request
+        # token below allows to make Repository Dispatch calls to the GH repo/ GH Org where the scans will be done
+        token = os.environ['PAT_REPOSITORY_DISPATCH_APPSEC_REPO']
+        headers = {
+            'Authorization': f'Bearer {token}', 
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
         
         for repo in repos:			
           
           repo_name = repo['name']
           # Check if the value exists in any cell of the DataFrame
           if df.isin([repo_name]).any().any():
-            logging.info(f'The value "{repo_name}" exists in the daily scan list.')              
+            logging.info('The value "%s" exists in the daily scan list', repo_name)              
             repo_full_name = repo['full_name']
             repo_branch = repo['default_branch']
   
             repo_url = repo['clone_url']
             repo_clone_url = repo['clone_url']
-            logging.info(f"Repo Name: {repo_name}, Repo URL: {repo_url}")
-        
-            # GitHub API URL for repository_dispatch
-            scanning_repo = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']
-            logging.info(f"repository = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']: {scanning_repo}")
-            
-            scanning_org_name = os.environ['APPSEC_ORG_WHERE_SCANS_DONE']
-            logging.info(f"org_name = os.environ['APPSEC_ORG_WHERE_SCANS_DONE']: {scanning_org_name}")
-            
-            url = f'https://api.github.com/repos/{scanning_org_name}/{scanning_repo}/dispatches'
-        
-            # Headers for the request
-            # token below allows to make Repository Dispatch calls to the GH repo/ GH Org where the scans will be done
-            token = os.environ['PAT_REPOSITORY_DISPATCH_APPSEC_REPO']
-            print(f"token = os.environ['PAT_REPOSITORY_DISPATCH_CUSTOMER_REPO']: {token}")
-            headers = {
-                'Authorization': f'Bearer {token}', 
-                'Accept': 'application/vnd.github.v3+json'
-            }
-        
+            logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
+                          
             # Payload for the repository_dispatch event
             # Change 'event_type' and 'client_payload' as per your requirements			    
             payload = {
@@ -117,16 +118,16 @@ jobs:
             }
         
             # Make the POST request
-            response = requests.post(url, headers=headers, json=payload)
-            logging.debug(f'Making Repository dispatch call for {repo_name} to {scanning_org_name}/{scanning_repo} : {url}')
+            response = requests.post(repo_dispatch_url, headers=headers, json=payload)
+            logging.debug('Making Repository dispatch call for %s to %s / %s : %s', repo_name, scanning_org_name, scanning_repo, repo_dispatch_url)
 
             # Log the response from GitHub
-            logging.debug(f"Response Code: {response.status_code}")
+            logging.debug("Response Code: %s", response.status_code)
   
             wait_time = os.environ['WAIT_TIME_BETWEEN_SCANS']
-            logging.debug(f'wait time is {wait_time}')
+            logging.debug('wait time is: %s', wait_time)
             time.sleep(int(wait_time)) #sleep for XX seconds before starting next scan
           else:
-            logging.info(f'The value "{repo_name}" does not exist in the daily scan list.')
+            logging.info('The value "%s" does not exist in the daily scan list', repo_name)
           
       shell: python
