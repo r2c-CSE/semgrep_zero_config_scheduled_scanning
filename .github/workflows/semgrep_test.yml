@@ -102,7 +102,7 @@ jobs:
         # Filter the repos list
         filtered_repos = [repo for repo in repos if repo['name'] in interested_repos]
 
-        filtered_repos_names = [repo['name' for repo in filtered_repos]
+        filtered_repos_names = [repo['name'] for repo in filtered_repos]
         logging.debug("list of filtered repos: %s", filtered_repos_names)
 
         # GitHub API URL for repository_dispatch
