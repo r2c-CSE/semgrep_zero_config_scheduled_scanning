@@ -121,8 +121,7 @@ jobs:
         }
         
         
-        for repo in filter_repos:			
-          
+        for repo in filtered_repos:			
           repo_name = repo['name']
           # Check if the value exists in any cell of the DataFrame
           # if df.isin([repo_name]).any().any():
