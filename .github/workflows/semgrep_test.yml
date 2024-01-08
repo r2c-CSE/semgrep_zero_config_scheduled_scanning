@@ -21,6 +21,7 @@ jobs:
       run: |
         pip install requests
         pip install pandas
+        pip install logging
         
     - name: Get list of repositories
       env:
@@ -51,21 +52,29 @@ jobs:
         import logging
         import time
         import pandas as pd
+        import logging
       
         # Set up logging
-        logger = logging.getLogger()
-        logger.setLevel(logging.INFO)
+        # Get logging level from environment variable
+        log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+        
+        # Configure logging
+        logging.basicConfig(level=log_level,
+                            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
 
         # GitHub repository in the format "org_name/repo_name"
         full_repo_name = os.environ['GITHUB_REPOSITORY']
         # Extract the organization name
         org_name = full_repo_name.split('/')[0]
-        print("Organization Name:", org_name)
+        logging.info("Organization Name:", org_name)
         pat = os.environ['PAT']
         headers = {'Authorization': f'token {pat}'}
 
         response = requests.get(f'https://api.github.com/orgs/{org_name}/repos', headers=headers)
         repos = response.json()
+        logging.debug(f"Requesting list of repos in Org: {org_name}")
+        logging.debug(f"Response Code: {response..status_code}")
 
         # Replace 'your_file.csv' with the path to your CSV file
         csv_file = 'daily.csv'
@@ -76,24 +85,22 @@ jobs:
           repo_name = repo['name']
           # Check if the value exists in any cell of the DataFrame
           if df.isin([repo_name]).any().any():
-            print(f'The value "{repo_name}" exists in the daily scan list.')              
+            logging.info(f'The value "{repo_name}" exists in the daily scan list.')              
             repo_full_name = repo['full_name']
             repo_branch = repo['default_branch']
   
             repo_url = repo['clone_url']
             repo_clone_url = repo['clone_url']
-            print(f"Repo Name: {repo_name}, Repo URL: {repo_url}")
-  
+            logging.info(f"Repo Name: {repo_name}, Repo URL: {repo_url}")
         
             # GitHub API URL for repository_dispatch
             scanning_repo = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']
-            print(f"repository = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']: {scanning_repo}")
-            # repository = 'nn-zcs'
+            logging.info(f"repository = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']: {scanning_repo}")
+            
             scanning_org_name = os.environ['APPSEC_ORG_WHERE_SCANS_DONE']
-            print(f"org_name = os.environ['APPSEC_ORG_WHERE_SCANS_DONE']: {scanning_org_name}")
-            # org_name = 'nitinNayar'
+            logging.info(f"org_name = os.environ['APPSEC_ORG_WHERE_SCANS_DONE']: {scanning_org_name}")
+            
             url = f'https://api.github.com/repos/{scanning_org_name}/{scanning_repo}/dispatches'
-            # https://api.github.com/repos/nitinNayar/nn-zcs/dispatches \ -d '{"event_type": "clone-repo-event", "client_payload": {"repository_name": "ssc-nnayar-r2c-mojito", "git_url": "https://github.com/nn-ssc-scans/ssc-nnayar-r2c-mojito.git", "pat": "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"}}'
         
             # Headers for the request
             # token below allows to make Repository Dispatch calls to the GH repo/ GH Org where the scans will be done
@@ -116,17 +123,15 @@ jobs:
         
             # Make the POST request
             response = requests.post(url, headers=headers, json=payload)
-        
-            # Log the response from GitHub
-            print(response.status_code)
-            # print(response.status_code)
-            # print(response.json())
+            logging.debug(f'Making Repository dispatch call for {repo_name} to {scanning_org_name}/{scanning_repo} : {url}')
 
+            # Log the response from GitHub
+            logging.debug(f"Response Code: {response.status_code}")
+  
             wait_time = os.environ['WAIT_TIME_BETWEEN_SCANS']
-            print(f'wait time is {wait_time}')
-            print(f'type of wait time is {type(wait_time)}')
+            logging.debug(f'wait time is {wait_time}')
             time.sleep(int(wait_time)) #sleep for XX seconds before starting next scan
           else:
-            print(f'The value "{repo_name}" does not exist in the daily scan list.')
+            logging.info(f'The value "{repo_name}" does not exist in the daily scan list.')
           
       shell: python
