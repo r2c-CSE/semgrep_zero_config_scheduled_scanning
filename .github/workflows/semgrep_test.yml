@@ -88,8 +88,6 @@ jobs:
         
         # response = requests.get(f'https://api.github.com/orgs/{org_name}/repos', headers=headers)
         # repos = response.json()
-        logging.debug("Requesting list of repos in Org: %s" ,org_name)
-        logging.debug("Response Code: %s", response.status_code)
 
         # Replace 'your_file.csv' with the path to your CSV file
         csv_file = 'daily.csv'
@@ -104,6 +102,9 @@ jobs:
 
         filtered_repos_names = [repo['name'] for repo in filtered_repos]
         logging.debug("list of filtered repos: %s", filtered_repos_names)
+
+        logging.debug("total number of repos: %s" ,len(repos))
+        logging.debug("number of filtered repos: %s" ,len(filtered_repos))
 
         # GitHub API URL for repository_dispatch
         scanning_repo = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']
