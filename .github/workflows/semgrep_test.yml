@@ -74,7 +74,7 @@ jobs:
         response = requests.get(f'https://api.github.com/orgs/{org_name}/repos', headers=headers)
         repos = response.json()
         logging.debug(f"Requesting list of repos in Org: {org_name}")
-        logging.debug(f"Response Code: {response..status_code}")
+        logging.debug(f"Response Code: {response.status_code}")
 
         # Replace 'your_file.csv' with the path to your CSV file
         csv_file = 'daily.csv'
