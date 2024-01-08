@@ -63,12 +63,13 @@ jobs:
         
         # Configure logging
         logging.basicConfig(level=log_level)
+        logging.info("Logging Level: %s", log_level)
 
         # GitHub repository in the format "org_name/repo_name"
         full_repo_name = os.environ['GITHUB_REPOSITORY']
         # Extract the organization name
         org_name = full_repo_name.split('/')[0]
-        logging.info("Organization Name:", org_name)
+        logging.info("Organization Name: %s", org_name)
         pat = os.environ['PAT']
         headers = {'Authorization': f'token {pat}'}
 
