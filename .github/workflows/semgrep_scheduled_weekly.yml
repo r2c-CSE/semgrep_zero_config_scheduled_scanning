@@ -65,7 +65,8 @@ jobs:
         log_level = os.getenv('LOGGING_LEVEL', 'INFO').upper()
         
         # Configure logging
-        logging.basicConfig(level=log_level)
+        logging.basicConfig(level=log_level,
+                            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         logging.info("Logging Level: %s", log_level)
 
         # GitHub repository in the format "org_name/repo_name"
@@ -76,14 +77,38 @@ jobs:
         pat = os.environ['PAT']
         headers = {'Authorization': f'token {pat}'}
 
-        response = requests.get(f'https://api.github.com/orgs/{org_name}/repos', headers=headers)
-        repos = response.json()
-        logging.debug("Requesting list of repos in Org: %s" ,org_name)
-        logging.debug("Response Code: %s", response.status_code)
+        repos = []
+        page = 1
+        while True:
+            url = f'https://api.github.com/orgs/{org_name}/repos?page={page}&per_page=100'
+            response = requests.get(url, headers=headers)
+            logging.debug("Requesting list of repos in Org: %s, page: %s" ,org_name, page)
+            logging.debug("Response Code: %s", response.status_code)
+            page_repos = response.json()
+            if not page_repos:
+                break
+            repos.extend(page_repos)
+            page += 1
+        
+        # response = requests.get(f'https://api.github.com/orgs/{org_name}/repos', headers=headers)
+        # repos = response.json()
 
         # Replace 'your_file.csv' with the path to your CSV file
         csv_file = 'weekly.csv'
         df = pd.read_csv(csv_file)
+
+        # Extract the list of repo names from the CSV file
+        # Replace 'repo_name' with the actual column name in your CSV
+        interested_repos = df['repo_name'].tolist()
+        
+        # Filter the repos list
+        filtered_repos = [repo for repo in repos if repo['name'] in interested_repos]
+
+        filtered_repos_names = [repo['name'] for repo in filtered_repos]
+        logging.debug("list of filtered repos: %s", filtered_repos_names)
+
+        logging.debug("total number of repos: %s" ,len(repos))
+        logging.debug("number of filtered repos: %s" ,len(filtered_repos))
 
         # GitHub API URL for repository_dispatch
         scanning_repo = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']
@@ -104,37 +129,32 @@ jobs:
         }
         
         
-        for repo in repos:			
-          
+        for repo in filtered_repos:			
           repo_name = repo['name']
-          # Check if the value exists in any cell of the DataFrame
-          if df.isin([repo_name]).any().any():
-            logging.info('The value "%s" exists in the weekly scan list', repo_name)              
-            repo_full_name = repo['full_name']
-            repo_branch = repo['default_branch']
-  
-            repo_url = repo['clone_url']
-            repo_clone_url = repo['clone_url']
-            logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
-                          
-            # Payload for the repository_dispatch event
-            # Change 'event_type' and 'client_payload' as per your requirements			    
-            payload = {
-                'event_type': 'zcs-event',
-                'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "git_url": repo_clone_url }
-            }
-        
-            # Make the POST request
-            response = requests.post(repo_dispatch_url, headers=headers, json=payload)
-            logging.debug('Making Repository dispatch call for %s to %s / %s : %s', repo_name, scanning_org_name, scanning_repo, repo_dispatch_url)
+          logging.info('The value "%s" exists in the weekly scan list', repo_name)              
+          repo_full_name = repo['full_name']
+          repo_branch = repo['default_branch']
 
-            # Log the response from GitHub
-            logging.debug("Response Code: %s", response.status_code)
-  
-            wait_time = os.environ['WAIT_TIME_BETWEEN_SCANS']
-            logging.debug('wait time is: %s', wait_time)
-            time.sleep(int(wait_time)) #sleep for XX seconds before starting next scan
-          else:
-            logging.info('The value "%s" does not exist in the weekly scan list', repo_name)
+          repo_url = repo['clone_url']
+          repo_clone_url = repo['clone_url']
+          logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
+                        
+          # Payload for the repository_dispatch event
+          # Change 'event_type' and 'client_payload' as per your requirements			    
+          payload = {
+              'event_type': 'zcs-event',
+              'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "git_url": repo_clone_url }
+          }
+      
+          # Make the POST request
+          response = requests.post(repo_dispatch_url, headers=headers, json=payload)
+          logging.debug('Making Repository dispatch call for %s to %s / %s : %s', repo_name, scanning_org_name, scanning_repo, repo_dispatch_url)
+
+          # Log the response from GitHub
+          logging.debug("Response Code: %s", response.status_code)
+
+          wait_time = os.environ['WAIT_TIME_BETWEEN_SCANS']
+          logging.debug('wait time is: %s', wait_time)
+          time.sleep(int(wait_time)) #sleep for XX seconds before starting next scan
           
       shell: python
