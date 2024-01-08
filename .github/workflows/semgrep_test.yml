@@ -62,7 +62,8 @@ jobs:
         log_level = os.getenv('LOGGING_LEVEL', 'INFO').upper()
         
         # Configure logging
-        logging.basicConfig(level=log_level)
+        logging.basicConfig(level=log_level,
+                            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         logging.info("Logging Level: %s", log_level)
 
         # GitHub repository in the format "org_name/repo_name"
