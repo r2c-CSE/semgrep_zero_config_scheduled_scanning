@@ -38,6 +38,7 @@ The workflow performs the following steps:
 
 ## Workflow-1: Daily
 
+Daily workflow file: https://github.com/r2c-CSE/semgrep_zero_config_scheduled_scanning/blob/main/.github/workflows/semgrep_scheduled_daily.yml
 
 The `daily.csv` file should be as follows:
 
@@ -54,6 +55,7 @@ Note: first line must be `repo_name`
 
 ## Workflow-2: Weekly
 
+Weekly workflow file: https://github.com/r2c-CSE/semgrep_zero_config_scheduled_scanning/blob/main/.github/workflows/semgrep_scheduled_weekly.yml
 
 The `weekly.csv` file should be as follows:
 
