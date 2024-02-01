@@ -38,6 +38,7 @@ jobs:
           git status
           export SEMGREP_REPO_NAME=$SEMGREP_REPO_NAME
           export SEMGREP_REPO_URL=$GIT_URL
+          export SEMGREP_BRANCH=$SEMGREP_BRANCH
           semgrep ci
         env:
           # SEMGREP_REPO_NAME: ${{REPOSITORY_NAME}}
@@ -48,3 +49,4 @@ jobs:
           SEMGREP_REPO_URL: ${{ github.event.client_payload.git_url }}
           SEMGREP_REPO_NAME: ${{ github.event.client_payload.repository_full_name }}
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+          SEMGREP_BRANCH: ${{ github.event.client_payload.repository_default_branch }}

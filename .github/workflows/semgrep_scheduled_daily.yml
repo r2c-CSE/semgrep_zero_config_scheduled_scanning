@@ -135,7 +135,7 @@ jobs:
           # if df.isin([repo_name]).any().any():
           logging.info('The value "%s" exists in the daily scan list', repo_name)              
           repo_full_name = repo['full_name']
-          repo_branch = repo['default_branch']
+          repo_default_branch = repo['default_branch']
 
           repo_url = repo['clone_url']
           repo_clone_url = repo['clone_url']
@@ -145,7 +145,7 @@ jobs:
           # Change 'event_type' and 'client_payload' as per your requirements			    
           payload = {
               'event_type': 'zcs-event',
-              'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "git_url": repo_clone_url }
+              'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "repository_default_branch": repo_default_branch, "git_url": repo_clone_url }
           }
       
           # Make the POST request
