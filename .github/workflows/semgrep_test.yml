@@ -142,7 +142,7 @@ jobs:
           # Change 'event_type' and 'client_payload' as per your requirements			    
           payload = {
               'event_type': 'zcs-event',
-              'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "git_url": repo_clone_url }
+              'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "repository_default_branch": repo_default_branch, "git_url": repo_clone_url }
           }
       
           # Make the POST request
