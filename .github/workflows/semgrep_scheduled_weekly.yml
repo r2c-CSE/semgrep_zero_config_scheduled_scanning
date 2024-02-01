@@ -133,7 +133,7 @@ jobs:
           repo_name = repo['name']
           logging.info('The value "%s" exists in the weekly scan list', repo_name)              
           repo_full_name = repo['full_name']
-          repo_branch = repo['default_branch']
+          repo_default_branch = repo['default_branch']
 
           repo_url = repo['clone_url']
           repo_clone_url = repo['clone_url']
