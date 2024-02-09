@@ -40,6 +40,7 @@ jobs:
         import time
         import pandas as pd
         import json
+        import sys
       
         # Set up logging
         logger = logging.getLogger()
@@ -96,6 +97,7 @@ jobs:
     
         r = requests.get(f"https://semgrep.dev/api/v1/deployments/{os.environ['SEMGREP_DEPLOYMENT_SLUG'] }/projects?page=0",params=params ,headers=headers)
         if r.status_code != 200:
+            logging.error("Getting list of projects from Semgrep Failed- please check Semgrep API token")
             sys.exit(f'Get failed: {r.text}')
         semgrep_repos = json.loads(r.text)   
 
