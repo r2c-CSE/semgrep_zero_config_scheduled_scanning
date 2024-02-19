@@ -1,10 +1,12 @@
-name: v2- Semgrep Coverage Report
+name: Semgrep Coverage Report
 
 on:
   # Scan on-demand through GitHub Actions interface:
   workflow_dispatch: {}
   # Schedule the CI job (this method uses cron syntax):
-
+  schedule:
+    - cron: '20 17 * * *' # Sets Semgrep to scan every day at 17:20 UTC.
+    
 jobs:
   get-list-of-repos:
     runs-on: ubuntu-latest
@@ -99,21 +101,28 @@ jobs:
             repos.extend(page_repos)
             page += 1
 
+        # Read list of repos in daily.csv and weekly.csv
         daily_df = pd.read_csv('daily.csv', header=None)
+        logging.debug(f"Daily.csv read successful- number of repos in daily.csv = {len(daily_df)} ")
         weekly_df = pd.read_csv('weekly.csv', header=None)
+        logging.debug(f"Weekly.csv read successful- number of repos in weekly.csv = {len(weekly_df)} ")
         
         daily_repos = daily_df[0].tolist()
         weekly_repos = weekly_df[0].tolist()
         github_repos = [repo['name'] for repo in repos]
 
         daily_repos_not_in_github_repos = [item for item in daily_repos if item not in github_repos]
+        logging.debug(f"daily_repos_not_in_github_repos created- length = {len(daily_repos_not_in_github_repos)} ")
         weekly_repos_not_in_github_repos = [item for item in weekly_repos if item not in github_repos]
+        logging.debug(f"weekly_repos_not_in_github_repos created- length = {len(weekly_repos_not_in_github_repos)} ")
 
         df_daily_repos_not_in_github_repos = pd.DataFrame(daily_repos_not_in_github_repos)
         df_weekly_repos_not_in_github_repos = pd.DataFrame(weekly_repos_not_in_github_repos)
 
         df_daily_repos_not_in_github_repos.to_csv('daily_repos_not_in_github_repos.csv', index=False)
+        logging.debug("df_daily_repos_not_in_github_repos written to file")
         df_weekly_repos_not_in_github_repos.to_csv('weekly_repos_not_in_github_repos.csv', index=False)
+        logging.debug("df_weekly_repos_not_in_github_repos written to file")
 
         headers = {"Accept": "application/json", "Authorization": "Bearer " + os.environ['SEMGREP_API_WEB_TOKEN']}
         params =  {"page_size": 3000}
@@ -130,6 +139,7 @@ jobs:
         coverage_data = []
         
         for repo in repos:
+            logging.debug("processing repo start- {repo_full_name}")
             repo_name = repo['name']
             repo_full_name = repo['full_name']
             created_at = repo['created_at']
@@ -151,6 +161,8 @@ jobs:
             duplicate_scans = 1 if (daily_mark + weekly_mark == 2) else 0
             
             coverage_data.append([repo_name, daily_mark, weekly_mark, not_covered, duplicate_scans, latest_scan, created_at, html_url, repo_empty_state])
+            logging.debug("processing repo end- {repo_full_name}: {repo_name} , {daily_mark}, {weekly_mark}, {not_covered}, {duplicate_scans}, {latest_scan}, {created_at}, {html_url}, {repo_empty_state}")
+
         
         coverage_df = pd.DataFrame(coverage_data, columns=['Repository', 'Daily', 'Weekly', 'Not Covered', 'Duplicate Scans', 'Latest Scan', 'Created At', 'URL', 'Is Repo Empty'])
         coverage_df.to_csv('coverage.csv', index=False)
