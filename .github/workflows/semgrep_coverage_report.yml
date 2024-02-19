@@ -139,8 +139,8 @@ jobs:
         coverage_data = []
         
         for repo in repos:
-            logging.debug("processing repo start- {repo_full_name}")
             repo_name = repo['name']
+            logging.debug(f"processing repo start- {repo_name}")
             repo_full_name = repo['full_name']
             created_at = repo['created_at']
             html_url = repo['html_url']
@@ -161,7 +161,7 @@ jobs:
             duplicate_scans = 1 if (daily_mark + weekly_mark == 2) else 0
             
             coverage_data.append([repo_name, daily_mark, weekly_mark, not_covered, duplicate_scans, latest_scan, created_at, html_url, repo_empty_state])
-            logging.debug("processing repo end- {repo_full_name}: {repo_name} , {daily_mark}, {weekly_mark}, {not_covered}, {duplicate_scans}, {latest_scan}, {created_at}, {html_url}, {repo_empty_state}")
+            logging.debug(f"processing repo end- {repo_full_name}: {repo_name} , {daily_mark}, {weekly_mark}, {not_covered}, {duplicate_scans}, {latest_scan}, {created_at}, {html_url}, {repo_empty_state}")
 
         
         coverage_df = pd.DataFrame(coverage_data, columns=['Repository', 'Daily', 'Weekly', 'Not Covered', 'Duplicate Scans', 'Latest Scan', 'Created At', 'URL', 'Is Repo Empty'])
