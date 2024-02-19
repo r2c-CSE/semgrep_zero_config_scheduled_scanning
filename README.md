@@ -92,12 +92,6 @@ You will need to create the following Repository Variables:
 - `COVERAGE_REPORT_DEBUG_LEVEL`: The desired level of logging detail (e.g., DEBUG, INFO, WARNING).
 
 
-![image](https://github.com/r2c-CSE/semgrep_zero_config_scheduled_scanning/assets/119853191/a0fa30da-55ea-447f-8ac8-d033bb73b49d)
-
-![image](https://github.com/r2c-CSE/semgrep_zero_config_scheduled_scanning/assets/119853191/d9a965a8-0bfc-4b68-a04c-7683855b7bda)
-
-
-
 ## Workflow**-2**: Creating a workflow file in the scanning repo (this could be in the same GH ORG as customer repos or in a different GH ORG)
 
 ```yaml
