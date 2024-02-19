@@ -1,11 +1,9 @@
-name: Semgrep Coverage Report
+name: v2- Semgrep Coverage Report
 
 on:
   # Scan on-demand through GitHub Actions interface:
   workflow_dispatch: {}
   # Schedule the CI job (this method uses cron syntax):
-  schedule:
-    - cron: '20 17 * * *' # Sets Semgrep to scan every day at 17:20 UTC.
 
 jobs:
   get-list-of-repos:
@@ -31,27 +29,60 @@ jobs:
         PAT_READ_ONLY_CUSTOMER_REPO: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
         SEMGREP_API_WEB_TOKEN:  ${{ secrets.SEMGREP_API_WEB_TOKEN }}
         SEMGREP_DEPLOYMENT_SLUG: ${{ vars.SEMGREP_DEPLOYMENT_SLUG }}
+        DEBUG_LEVEL: ${{ vars.COVERAGE_REPORT_DEBUG_LEVEL }}
 
       run: |
         import requests
         import os
-        import requests
-        import logging
-        import time
         import pandas as pd
         import json
         import sys
-      
-        # Set up logging
-        logger = logging.getLogger()
-        logger.setLevel(logging.INFO)
-                 
+        import logging
 
+        # Function to convert debug level from string to logging module constant
+        def get_debug_level(level_str):
+            return {
+                'DEBUG': logging.DEBUG,
+                'INFO': logging.INFO,
+                'WARNING': logging.WARNING,
+                'ERROR': logging.ERROR,
+                'CRITICAL': logging.CRITICAL
+            }.get(level_str.upper(), logging.INFO) # Default to INFO if not matched
+
+        # Read DEBUG_LEVEL from environment and set logging level
+        debug_level_str = os.getenv('DEBUG_LEVEL', 'INFO') # Default to INFO if not set
+        print(f'Debug Level set to: {debug_level_str}')
+        logging.basicConfig(level=get_debug_level(debug_level_str), format='%(asctime)s - %(levelname)s - %(message)s')
+
+        def is_repo_empty(repo_name, pat):
+            """
+            Check if a GitHub repository is empty using the GitHub API.
+            """
+            url = f"https://api.github.com/repos/{repo_name}/branches"
+            headers = {"Authorization": f"token {pat}"}
+        
+            try:
+                response = requests.get(url, headers=headers)
+                response.raise_for_status()  # Raise an error for bad responses
+        
+                # Check if the list of branches is empty
+                if response.json():
+                    logging.info(f"The repository '{repo_name}' is not empty.")
+                    return "Not Empty"
+                else:
+                    logging.info(f"The repository '{repo_name}' is empty.")
+                    return "Empty"
+            except requests.exceptions.RequestException as e:
+                logging.error(f"An error occurred while checking the repository: {e}")
+                return False  # Assuming False in case of an error
+        
+        
         # GitHub repository in the format "org_name/repo_name"
         full_repo_name = os.environ['GITHUB_REPOSITORY']
+
         # Extract the organization name
         org_name = full_repo_name.split('/')[0]
-        print(f"Organization Name: {org_name}")
+        logging.info(f"Organization Name: {org_name}")
         pat = os.environ['PAT_READ_ONLY_CUSTOMER_REPO']
         headers = {'Authorization': f'token {pat}'}
 
@@ -60,22 +91,17 @@ jobs:
         while True:
             url = f'https://api.github.com/orgs/{org_name}/repos?page={page}&per_page=100'
             response = requests.get(url, headers=headers)
-            logging.debug("Requesting list of repos in Org: %s, page: %s" ,org_name, page)
-            logging.debug("Response Code: %s", response.status_code)
+            logging.debug(f"Requesting list of repos in Org: {org_name}, page: {page}")
+            logging.debug(f"Response Code: {response.status_code}")
             page_repos = response.json()
             if not page_repos:
                 break
             repos.extend(page_repos)
             page += 1
-        
-        # response = requests.get(f'https://api.github.com/orgs/{org_name}/repos', headers=headers)
-        # repos = response.json()
 
-        # Read the CSV files
         daily_df = pd.read_csv('daily.csv', header=None)
         weekly_df = pd.read_csv('weekly.csv', header=None)
         
-        # Convert to lists for easier checking
         daily_repos = daily_df[0].tolist()
         weekly_repos = weekly_df[0].tolist()
         github_repos = [repo['name'] for repo in repos]
@@ -83,29 +109,24 @@ jobs:
         daily_repos_not_in_github_repos = [item for item in daily_repos if item not in github_repos]
         weekly_repos_not_in_github_repos = [item for item in weekly_repos if item not in github_repos]
 
-        # Convert list to DataFrame
         df_daily_repos_not_in_github_repos = pd.DataFrame(daily_repos_not_in_github_repos)
         df_weekly_repos_not_in_github_repos = pd.DataFrame(weekly_repos_not_in_github_repos)
-        
-        # Write DataFrame to CSV
+
         df_daily_repos_not_in_github_repos.to_csv('daily_repos_not_in_github_repos.csv', index=False)
         df_weekly_repos_not_in_github_repos.to_csv('weekly_repos_not_in_github_repos.csv', index=False)
 
-
         headers = {"Accept": "application/json", "Authorization": "Bearer " + os.environ['SEMGREP_API_WEB_TOKEN']}
         params =  {"page_size": 3000}
-    
-        r = requests.get(f"https://semgrep.dev/api/v1/deployments/{os.environ['SEMGREP_DEPLOYMENT_SLUG'] }/projects?page=0",params=params ,headers=headers)
-        if r.status_code != 200:
-            logging.error("Getting list of projects from Semgrep Failed- please check Semgrep API token")
-            sys.exit(f'Get failed: {r.text}')
-        semgrep_repos = json.loads(r.text)   
 
-        # Read the CSV files
-        daily_df = pd.read_csv('daily.csv', header=None)
-        weekly_df = pd.read_csv('weekly.csv', header=None)
+        r = requests.get(f"https://semgrep.dev/api/v1/deployments/{os.environ['SEMGREP_DEPLOYMENT_SLUG']}/projects?page=0", params=params, headers=headers)
+        if r.status_code != 200:
+            logging.error("Getting list of projects from Semgrep failed - please check Semgrep API token")
+            sys.exit(f'Get failed: {r.text}')
         
-        # Prepare the data for the new CSV file
+        logging.debug("Getting list of projects from Semgrep successful")
+        
+        semgrep_repos = json.loads(r.text)
+
         coverage_data = []
         
         for repo in repos:
@@ -113,7 +134,8 @@ jobs:
             repo_full_name = repo['full_name']
             created_at = repo['created_at']
             html_url = repo['html_url']
-            
+            repo_empty_state = is_repo_empty(repo_full_name, pat)
+
             latest_scan = None
             for sg_repo in semgrep_repos['projects']:
                 if sg_repo['name'] == repo_full_name:
@@ -121,19 +143,18 @@ jobs:
                     break
             
             if latest_scan is None:
-                print(f"{repo_name} not scanned by Semgrep yet")            
+                logging.info(f"{repo_name} not scanned by Semgrep yet")
             
             daily_mark = 1 if repo_name in daily_repos else 0
             weekly_mark = 1 if repo_name in weekly_repos else 0
-            not_covered = 1 if (daily_mark+weekly_mark == 0) else 0
-            duplicate_scans = 1 if (daily_mark+weekly_mark == 2) else 0            
-            coverage_data.append([repo_name, daily_mark, weekly_mark, not_covered, duplicate_scans, latest_scan, created_at, html_url])
+            not_covered = 1 if (daily_mark + weekly_mark == 0) else 0
+            duplicate_scans = 1 if (daily_mark + weekly_mark == 2) else 0
+            
+            coverage_data.append([repo_name, daily_mark, weekly_mark, not_covered, duplicate_scans, latest_scan, created_at, html_url, repo_empty_state])
         
-        # Create a DataFrame and write to CSV
-        coverage_df = pd.DataFrame(coverage_data, columns=['Repository', 'Daily', 'Weekly', 'Not Covered', 'Duplicate Scans', 'Latest Scan', 'Created At', 'URL'])
+        coverage_df = pd.DataFrame(coverage_data, columns=['Repository', 'Daily', 'Weekly', 'Not Covered', 'Duplicate Scans', 'Latest Scan', 'Created At', 'URL', 'Is Repo Empty'])
         coverage_df.to_csv('coverage.csv', index=False)
-
-        
+      
       shell: python
       
     - name: Upload coverage.CSV as Artifact
@@ -143,4 +164,4 @@ jobs:
         path: |
           daily_repos_not_in_github_repos.csv
           weekly_repos_not_in_github_repos.csv
-          coverage.csv  
+          coverage.csv
