@@ -70,19 +70,27 @@ WebGoat
 
 Note: first line must be `repo_name`
 
-You will need to create the following 3 Repository Secrets:
+You will need to create the following Repository Secrets:
 
-- `SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}`
+![image](https://github.com/r2c-CSE/semgrep_zero_config_scheduled_scanning/assets/119853191/db567bbc-7676-4029-8799-5303a0bfdbb3)
+
+NOTE:
 - `PAT_READ_ONLY_CUSTOMER_REPO: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}`- Generate PAT with Read-Only access to all repos in your GH ORG
     - NOTE: the scans run inside your GitHub Actions runners and no code leaves your environment (or sent to Semgrep) as part of these scheduled scans
 - **OPTIONAL (needed only if you hit issues using `GITHUB_TOKEN`):** `PAT_REPOSITORY_DISPATCH_APPSEC_REPO: ${{ secrets.PAT_REPOSITORY_DISPATCH_APPSEC_REPO }}` - Generate PAT with permissions to initiate repository dispatch in AppSec repo in your AppSec GH ORG
 
-You will need to create the following 3 Repository Variables:
+You will need to create the following Repository Variables:
+
+![image](https://github.com/r2c-CSE/semgrep_zero_config_scheduled_scanning/assets/119853191/f3aebfeb-079f-4e18-bf20-79177a4fe44c)
+
 
 - `APPSEC_REPO_WHERE_SCANS_DONE: ${{ vars.APPSEC_REPO_WHERE_SCANS_DONE }}`- Name of the AppSec Repo where the scans will be performed
 - `APPSEC_ORG_WHERE_SCANS_DONE: ${{ vars.APPSEC_ORG_WHERE_SCANS_DONE }}`- Name of the AppSec Org where the scans will be performed. This can be the same as the Org where other repos are
 - `WAIT_TIME_BETWEEN_SCANS: ${{ vars.WAIT_TIME_BETWEEN_SCANS }}`- Wait time (in seconds) between triggering Semgrep Scans
-- `LOGGING_LEVEL: ${{ vars.LOGGING_LEVEL }}` -  Control logging level
+- `LOGGING_LEVEL: ${{ vars.LOGGING_LEVEL }}` -  Control logging level for Scans
+- `SEMGREP_DEPLOYMENT_SLUG`: Your organization's unique identifier within Semgrep.
+- `COVERAGE_REPORT_DEBUG_LEVEL`: The desired level of logging detail (e.g., DEBUG, INFO, WARNING).
+
 
 ![image](https://github.com/r2c-CSE/semgrep_zero_config_scheduled_scanning/assets/119853191/a0fa30da-55ea-447f-8ac8-d033bb73b49d)
 
