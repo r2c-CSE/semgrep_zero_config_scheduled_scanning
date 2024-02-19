@@ -165,7 +165,7 @@ You will need to create the following 2 Secrets:
 
 ![image](https://github.com/r2c-CSE/semgrep_zero_config_scheduled_scanning/assets/119853191/7d3bf9fe-c4cd-422d-ac2d-0d1f3b7df380)
 
-## Semgrep Coverage Report Action Workflow
+# Semgrep Coverage Report Action Workflow
 This GitHub Action, named Semgrep Coverage Report, is designed to automate the process of generating a coverage report for repository scanning using Semgrep. It facilitates both on-demand and scheduled scans of codebases for security vulnerabilities and coding best practices.
 
 ## Features
