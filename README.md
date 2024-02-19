@@ -165,6 +165,35 @@ You will need to create the following 2 Secrets:
 
 ![image](https://github.com/r2c-CSE/semgrep_zero_config_scheduled_scanning/assets/119853191/7d3bf9fe-c4cd-422d-ac2d-0d1f3b7df380)
 
-## Semgrep Coverage Report Workflow
+## Semgrep Coverage Report Action Workflow
+This GitHub Action, named Semgrep Coverage Report, is designed to automate the process of generating a coverage report for repository scanning using Semgrep. It facilitates both on-demand and scheduled scans of codebases for security vulnerabilities and coding best practices.
+
+## Features
+
+- **On-Demand Scans**: Trigger scans manually through the GitHub Actions interface whenever necessary.
+- **Scheduled Scans**: Automatically runs scans daily at a set time (17:20 UTC) to ensure continuous code quality and security checks.
+- **Comprehensive Reporting**: Generates detailed reports on the scan results, including whether repositories are covered by daily or weekly scans, duplicates, which repos have no coverage, when the repo was added, when was the last successful semgrep scan and if the repository is empty, for all the repos in the GitHub organisation.
+
+## Workflow Details
+
+- **Dependencies**: Installs required Python libraries (`requests` and `pandas`) to fetch data from GitHub and Semgrep and to process it.
+- **Collect list of Repositories in the GitHub Org**: Fetches a list of repositories under an organization, checks them against daily and weekly scan records, and determines their scan status on Semgrep.
+- **Logging**: Employs Python's `logging` module for logging, with the debug level configurable through GitHub repository variables.
+- **Artifact Creation**: Generates CSV files documenting repositories not covered in GitHub scans, their scan results from Semgrep, and uploads them as artifacts for review.
+
+## Usage
+
+### Setting Up Secrets and Variables
+
+To use this action, you'll need to configure the following secrets in your GitHub repository:
+
+- `PAT_READ_ONLY_CUSTOMER_REPO`: A GitHub Personal Access Token with read-only access to your repositories.
+- `SEMGREP_API_WEB_TOKEN`: The API token for accessing [Semgrep APIs](https://semgrep.dev/api/v1/docs/#section/Introduction)
+- `SEMGREP_DEPLOYMENT_SLUG`: Your organization's unique identifier within Semgrep.
+- `COVERAGE_REPORT_DEBUG_LEVEL`: The desired level of logging detail (e.g., DEBUG, INFO, WARNING).
+
+### Configuration
+
+The action is pre-configured to run on a schedule and can also be triggered manually. Adjust the `cron` schedule in the YAML file if a different timing is preferred for the automated scans.
 
 <img width="1245" alt="image" src="https://github.com/r2c-CSE/semgrep_zero_config_scheduled_scanning/assets/119853191/d2b28211-f597-4ccd-b617-e7abd370a7cc">
