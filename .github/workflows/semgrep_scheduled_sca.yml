@@ -1,4 +1,4 @@
-name: Semgrep SCA Scheduled Scan on Repos
+name: SCA-Semgrep Scheduled Scan on Repos
 
 on:
   # Scan on-demand through GitHub Actions interface:
