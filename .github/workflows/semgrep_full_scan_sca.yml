@@ -13,9 +13,19 @@ jobs:
   semgrep-sca-maven:
     continue-on-error: true
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ '8', '11', '17', '21' ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
           
       - name: Semgrep SCA Maven
         run: |
@@ -46,8 +56,6 @@ jobs:
             echo "No pom.xml found for this repo"
           fi
         env:
-          # SEMGREP_REPO_NAME: ${{REPOSITORY_NAME}}
-          # SEMGREP_REPO_URL: ${{GIT_URL}}
           GIT_URL: ${{ github.event.client_payload.git_url }}
           REPOSITORY_NAME: ${{ github.event.client_payload.repository_name }}
           PAT_READ_ONLY_CUSTOMER_REPO: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
