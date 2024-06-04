@@ -10,15 +10,6 @@ on:
     - .github/workflows/semgrep.yml
 name: Semgrep
 jobs:
-
-name: Run Semgrep Scan on Dispatch
-
-on:
-  workflow_dispatch: {}
-  repository_dispatch:
-    types: [zcs-event]
-
-jobs:
   clone-repo:
     runs-on: ubuntu-latest
     container:
