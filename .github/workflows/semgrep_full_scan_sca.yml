@@ -1,0 +1,58 @@
+on: 
+  workflow_dispatch: 
+  pull_request: {}
+  push:
+    branches:
+    - main
+    paths:
+    - .github/workflows/semgrep.yml
+  schedule:
+  # random HH:MM to avoid a load spike on GitHub Actions at 00:00
+  - cron: 00 5 * * 1
+name: Semgrep
+jobs:
+  buildmavenDepTree: 
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Check for pom.xml
+      id: check_pom
+      run: |
+        if [ -f "pom.xml" ]; then
+          echo "found=true" >> $GITHUB_ENV
+        else
+          echo "found=false" >> $GITHUB_ENV
+        fi
+    - name: Set up JDK 17
+      if: env.found == 'true'
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    - name: Build with Maven
+      if: env.found == 'true'
+      run: mvn --batch-mode --update-snapshots package
+    - name: Build Dependency Tree
+      if: env.found == 'true'
+      run: mvn dependency:tree -DoutputFile=maven_dep_tree.txt
+    - name: Upload Dependency Tree Artifact     
+      if: env.found == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: mavendeptree
+        path: maven_dep_tree.txt
+  semgrep:
+    needs: buildmavenDepTree
+    name: Scan
+    runs-on: ubuntu-20.04
+    env:
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+    container:
+      image: semgrep/semgrep
+    steps:
+    - uses: actions/checkout@v3
+    - name: Download artifact from previous job
+      uses: actions/download-artifact@v3
+      with:
+        name: mavendeptree 
+    - run: semgrep ci --supply-chain
