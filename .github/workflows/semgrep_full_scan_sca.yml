@@ -40,7 +40,6 @@ jobs:
           export SEMGREP_BRANCH=$SEMGREP_BRANCH
           if [ -f "pom.xml" ]; then
             rm -f ~/.m2/settings.xml
-            . /usr/local/bin/fetch_maven_setting secret/non-prod/seceng/nexus/iauth-readonly secret/non-prod/adtech/nexus/passport secret/non-prod/hspay/templatize-macro-snapshot secret/non-prod/hspay/templatize-macro-release secret/dev/hspay/nexus/release secret/dev/hspay/nexus/snapshot secret/non-prod/hspay/hspay-common secret/non-prod/hspay/offers-dmsp secret/non-prod/hspay/offers-ads secret/non-prod/hspay/offer-release secret/non-prod/hspay/hspay-release secret/non-prod/pe/build/loadshedder-nexus secret/non-prod/adtech/nexus/common-lib secret/non-prod/adtech/nexus/release secret/non-prod/adtech/nexus/snapshot secret/non-prod/adtech/nexus/passport secret/non-prod/cms/nexus/release secret/non-prod/cms/nexus/snapshot secret/non-prod/nexus-proxy secret/non-prod/adtech/nexus/passport secret/non-prod/hspay/templatize-macro-release secret/non-prod/hspay/templatize-macro-release secret/dev/hspay/nexus/release secret/dev/hspay/nexus/snapshot secret/non-prod/hspay/hspay-common secret/non-prod/nexus-proxy secret/non-prod/hspay/hspay-release secret/non-prod/seceng/nexus/iauth-readonly secret/non-prod/seceng/nexus/iauth-snapshot-readonly secret/dev/cms/nexus/release secret/dev/cms/nexus/snapshot
             mvn clean install -Dmaven.test.skip=true
             mvn dependency:tree -DskipTests=true -DoutputFile=maven_dep_tree.txt
             semgrep ci --supply-chain
