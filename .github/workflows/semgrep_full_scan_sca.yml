@@ -39,6 +39,8 @@ jobs:
             rm -f ~/.m2/settings.xml
             mvn clean install -Dmaven.test.skip=true
             mvn dependency:tree -DskipTests=true -DoutputFile=maven_dep_tree.txt
+            python -m pip install --upgrade pip
+            pip install semgrep
             semgrep ci --supply-chain
           else 
             echo "No pom.xml found for this repo"
