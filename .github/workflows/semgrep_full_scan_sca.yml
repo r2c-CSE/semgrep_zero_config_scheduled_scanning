@@ -48,6 +48,7 @@ jobs:
           SEMGREP_BRANCH: ${{ github.event.client_payload.repository_default_branch }}
 
   buildmavenDepTree:
+      needs: clone-repo
       runs-on: ubuntu-latest
       continue-on-error: true
       strategy:
