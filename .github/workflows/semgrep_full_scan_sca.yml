@@ -2,38 +2,71 @@ on:
   workflow_dispatch: {}
   repository_dispatch:
     types: [zcs-event-sca-maven]
+  pull_request: {}
+  push:
+    branches:
+    - main
+    paths:
+    - .github/workflows/semgrep.yml
 name: Semgrep
 jobs:
-  buildmavenDepTree: 
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Check for pom.xml
-      id: check_pom
-      run: |
-        if [ -f "pom.xml" ]; then
-          echo "found=true" >> $GITHUB_ENV
-        else
-          echo "found=false" >> $GITHUB_ENV
-        fi
-    - name: Set up JDK 17
-      if: env.found == 'true'
-      uses: actions/setup-java@v3
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-    - name: Build with Maven
-      if: env.found == 'true'
-      run: mvn --batch-mode --update-snapshots package
-    - name: Build Dependency Tree
-      if: env.found == 'true'
-      run: mvn dependency:tree -DoutputFile=maven_dep_tree.txt
-    - name: Upload Dependency Tree Artifact     
-      if: env.found == 'true'
-      uses: actions/upload-artifact@v3
-      with:
-        name: mavendeptree
-        path: maven_dep_tree.txt
+  buildmavenDepTree:
+      runs-on: ubuntu-latest
+      continue-on-error: true
+      strategy:
+        fail-fast: false
+        matrix:
+          java: [ '17' ]
+
+      outputs:
+        pom_exists: ${{ steps.check_pom.outputs.pom_found }}
+      
+      steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check for pom.xml
+        id: check_pom
+        run: |
+          if [ -f "pom.xml" ]; then
+            echo "pom_found=true" >> $GITHUB_ENV
+            echo "pom_found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pom_found=false" >> $GITHUB_ENV
+            echo "pom_found=false" >> "$GITHUB_OUTPUT"
+          fi
+        
+      - name: Set up JDK ${{ matrix.java }}
+        if: env.pom_found == 'true'
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+
+      - name: Pre Build
+        if: env.pom_found == 'true'
+        run: |
+          rm -f ~/.m2/settings.xml
+          . /usr/local/bin/fetch_maven_setting secret/non-prod/seceng/nexus/iauth-readonly secret/non-prod/adtech/nexus/passport secret/non-prod/hspay/templatize-macro-snapshot secret/non-prod/hspay/templatize-macro-release secret/dev/hspay/nexus/release secret/dev/hspay/nexus/snapshot secret/non-prod/hspay/hspay-common secret/non-prod/hspay/offers-dmsp secret/non-prod/hspay/offers-ads secret/non-prod/hspay/offer-release secret/non-prod/hspay/hspay-release secret/non-prod/pe/build/loadshedder-nexus secret/non-prod/adtech/nexus/common-lib secret/non-prod/adtech/nexus/release secret/non-prod/adtech/nexus/snapshot secret/non-prod/adtech/nexus/passport secret/non-prod/cms/nexus/release secret/non-prod/cms/nexus/snapshot secret/non-prod/nexus-proxy secret/non-prod/adtech/nexus/passport secret/non-prod/hspay/templatize-macro-release secret/non-prod/hspay/templatize-macro-release secret/dev/hspay/nexus/release secret/dev/hspay/nexus/snapshot secret/non-prod/hspay/hspay-common secret/non-prod/nexus-proxy secret/non-prod/hspay/hspay-release secret/non-prod/seceng/nexus/iauth-readonly secret/non-prod/seceng/nexus/iauth-snapshot-readonly secret/dev/cms/nexus/release secret/dev/cms/nexus/snapshot
+
+      - name: Build Dependency Tree
+        if: env.pom_found == 'true'
+        id: dependencytree
+        run: mvn dependency:tree -DskipTests=true -DoutputFile=maven_dep_tree.txt
+        continue-on-error: true
+
+      - name: Build Dependency Tree with Clean Install
+        if: ${{ failure() || steps.dependencytree.outcome == 'failure' }}
+        run: |
+          mvn clean install -Dmaven.test.skip=true
+          mvn dependency:tree -DskipTests=true -DoutputFile=maven_dep_tree.txt
+
+      - name: Upload Dependency Tree Artifact
+        if: env.pom_found == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: mavendeptree
+          path: maven_dep_tree.txt
+  
   semgrep:
     needs: buildmavenDepTree
     name: Scan
@@ -43,9 +76,13 @@ jobs:
     container:
       image: semgrep/semgrep
     steps:
-    - uses: actions/checkout@v3
-    - name: Download artifact from previous job
-      uses: actions/download-artifact@v3
-      with:
-        name: mavendeptree 
-    - run: semgrep ci --supply-chain
+      - uses: actions/checkout@v3
+      - name: Download artifact from previous job
+        if: ${{ needs.buildmavenDepTree.outputs.pom_exists == 'true' }}
+        uses: actions/download-artifact@v3
+        with:
+          name: mavendeptree
+      - name: Run Semgrep Supply Chain
+        if: ${{ needs.buildmavenDepTree.outputs.pom_exists == 'true' }}
+        run: |
+          semgrep ci --supply-chain
