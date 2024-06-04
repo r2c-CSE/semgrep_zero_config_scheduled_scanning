@@ -116,32 +116,31 @@ jobs:
         for repo in repos:			
           repo_name = repo['name']
 
-          if repo_name == 'log4j-vulnerable-maven':
-            repo_full_name = repo['full_name']
-            repo_default_branch = repo['default_branch']
-            logging.info('The value "%s" exists', repo_name) 
+          repo_full_name = repo['full_name']
+          repo_default_branch = repo['default_branch']
+          logging.info('The value "%s" exists', repo_name) 
             
-            repo_url = repo['clone_url']
-            repo_clone_url = repo['clone_url']
-            logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
-            logging.info("Repo Full Name: %s, Repo Clone URL: %s", repo_full_name, repo_clone_url)
+          repo_url = repo['clone_url']
+          repo_clone_url = repo['clone_url']
+          logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
+          logging.info("Repo Full Name: %s, Repo Clone URL: %s", repo_full_name, repo_clone_url)
             
-            # Payload for the repository_dispatch event
-            # Change 'event_type' and 'client_payload' as per your requirements			    
-            payload = {
-                'event_type': 'zcs-event-sca-maven',
-                'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "repository_default_branch": repo_default_branch, "git_url": repo_clone_url }
-            }
+          # Payload for the repository_dispatch event
+          # Change 'event_type' and 'client_payload' as per your requirements			    
+          payload = {
+              'event_type': 'zcs-event-sca-maven',
+              'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "repository_default_branch": repo_default_branch, "git_url": repo_clone_url }
+          }
         
-            # Make the POST request
-            response = requests.post(repo_dispatch_url, headers=headers, json=payload)
-            logging.debug('Making Repository dispatch call for %s to %s / %s : %s', repo_name, scanning_org_name, scanning_repo, repo_dispatch_url)
+          # Make the POST request
+          response = requests.post(repo_dispatch_url, headers=headers, json=payload)
+          logging.debug('Making Repository dispatch call for %s to %s / %s : %s', repo_name, scanning_org_name, scanning_repo, repo_dispatch_url)
   
-            # Log the response from GitHub
-            logging.debug("Response Code: %s", response.status_code)
+          # Log the response from GitHub
+          logging.debug("Response Code: %s", response.status_code)
   
-            wait_time = os.environ['WAIT_TIME_BETWEEN_SCANS']
-            logging.debug('wait time is: %s', wait_time)
-            time.sleep(int(wait_time)) #sleep for XX seconds before starting next scan
+          wait_time = os.environ['WAIT_TIME_BETWEEN_SCANS']
+          logging.debug('wait time is: %s', wait_time)
+          time.sleep(int(wait_time)) #sleep for XX seconds before starting next scan
           
       shell: python
