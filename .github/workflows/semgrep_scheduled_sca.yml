@@ -115,18 +115,17 @@ jobs:
         
         for repo in repos:			
           repo_name = repo['name']
-          # Check if the value exists in any cell of the DataFrame
-          # if df.isin([repo_name]).any().any():
-          logging.info('The value "%s" exists', repo_name)   
 
           if repo_name == 'log4j-vulnerable-maven':
             repo_full_name = repo['full_name']
             repo_default_branch = repo['default_branch']
-  
+            logging.info('The value "%s" exists', repo_name) 
+            
             repo_url = repo['clone_url']
             repo_clone_url = repo['clone_url']
             logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
-                          
+            logging.info("Repo Full Name: %s, Repo Clone URL: %s", repo_full_name, repo_clone_url)
+            
             # Payload for the repository_dispatch event
             # Change 'event_type' and 'client_payload' as per your requirements			    
             payload = {
