@@ -10,15 +10,17 @@ on:
     - .github/workflows/semgrep.yml
 name: Semgrep
 jobs:
-  clone-repo:
+  semgrep-sca-maven:
+    continue-on-error: true
     runs-on: ubuntu-latest
     container:
       image: semgrep/semgrep
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
           
-      - name: Clone External Repository
+      - name: Semgrep SCA Maven
         run: |
           # Replace 'https://' with 'https://{PAT}@' in the GIT_URL
           modified_url=$(echo "${GIT_URL}" | sed "s|https://|https://${PAT_READ_ONLY_CUSTOMER_REPO}@|")
@@ -36,6 +38,15 @@ jobs:
           export SEMGREP_REPO_NAME=$SEMGREP_REPO_NAME
           export SEMGREP_REPO_URL=$GIT_URL
           export SEMGREP_BRANCH=$SEMGREP_BRANCH
+          if [ -f "pom.xml" ]; then
+            rm -f ~/.m2/settings.xml
+            . /usr/local/bin/fetch_maven_setting secret/non-prod/seceng/nexus/iauth-readonly secret/non-prod/adtech/nexus/passport secret/non-prod/hspay/templatize-macro-snapshot secret/non-prod/hspay/templatize-macro-release secret/dev/hspay/nexus/release secret/dev/hspay/nexus/snapshot secret/non-prod/hspay/hspay-common secret/non-prod/hspay/offers-dmsp secret/non-prod/hspay/offers-ads secret/non-prod/hspay/offer-release secret/non-prod/hspay/hspay-release secret/non-prod/pe/build/loadshedder-nexus secret/non-prod/adtech/nexus/common-lib secret/non-prod/adtech/nexus/release secret/non-prod/adtech/nexus/snapshot secret/non-prod/adtech/nexus/passport secret/non-prod/cms/nexus/release secret/non-prod/cms/nexus/snapshot secret/non-prod/nexus-proxy secret/non-prod/adtech/nexus/passport secret/non-prod/hspay/templatize-macro-release secret/non-prod/hspay/templatize-macro-release secret/dev/hspay/nexus/release secret/dev/hspay/nexus/snapshot secret/non-prod/hspay/hspay-common secret/non-prod/nexus-proxy secret/non-prod/hspay/hspay-release secret/non-prod/seceng/nexus/iauth-readonly secret/non-prod/seceng/nexus/iauth-snapshot-readonly secret/dev/cms/nexus/release secret/dev/cms/nexus/snapshot
+            mvn clean install -Dmaven.test.skip=true
+            mvn dependency:tree -DskipTests=true -DoutputFile=maven_dep_tree.txt
+            semgrep ci --supply-chain
+          else 
+            echo "No pom.xml found for this repo"
+          fi
         env:
           # SEMGREP_REPO_NAME: ${{REPOSITORY_NAME}}
           # SEMGREP_REPO_URL: ${{GIT_URL}}
@@ -47,80 +58,3 @@ jobs:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
           SEMGREP_BRANCH: ${{ github.event.client_payload.repository_default_branch }}
 
-  buildmavenDepTree:
-      needs: clone-repo
-      runs-on: ubuntu-latest
-      continue-on-error: true
-      strategy:
-        fail-fast: false
-        matrix:
-          java: [ '17' ]
-
-      outputs:
-        pom_exists: ${{ steps.check_pom.outputs.pom_found }}
-      
-      steps:
-      
-      - name: Check for pom.xml
-        id: check_pom
-        run: |
-          ls -la
-          if [ -f "pom.xml" ]; then
-            echo "pom_found=true" >> $GITHUB_ENV
-            echo "pom_found=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "pom_found=false" >> $GITHUB_ENV
-            echo "pom_found=false" >> "$GITHUB_OUTPUT"
-          fi
-        
-      - name: Set up JDK ${{ matrix.java }}
-        if: env.pom_found == 'true'
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ matrix.java }}
-          distribution: 'temurin'
-
-      - name: Pre Build
-        if: env.pom_found == 'true'
-        run: |
-          rm -f ~/.m2/settings.xml
-          . /usr/local/bin/fetch_maven_setting secret/non-prod/seceng/nexus/iauth-readonly secret/non-prod/adtech/nexus/passport secret/non-prod/hspay/templatize-macro-snapshot secret/non-prod/hspay/templatize-macro-release secret/dev/hspay/nexus/release secret/dev/hspay/nexus/snapshot secret/non-prod/hspay/hspay-common secret/non-prod/hspay/offers-dmsp secret/non-prod/hspay/offers-ads secret/non-prod/hspay/offer-release secret/non-prod/hspay/hspay-release secret/non-prod/pe/build/loadshedder-nexus secret/non-prod/adtech/nexus/common-lib secret/non-prod/adtech/nexus/release secret/non-prod/adtech/nexus/snapshot secret/non-prod/adtech/nexus/passport secret/non-prod/cms/nexus/release secret/non-prod/cms/nexus/snapshot secret/non-prod/nexus-proxy secret/non-prod/adtech/nexus/passport secret/non-prod/hspay/templatize-macro-release secret/non-prod/hspay/templatize-macro-release secret/dev/hspay/nexus/release secret/dev/hspay/nexus/snapshot secret/non-prod/hspay/hspay-common secret/non-prod/nexus-proxy secret/non-prod/hspay/hspay-release secret/non-prod/seceng/nexus/iauth-readonly secret/non-prod/seceng/nexus/iauth-snapshot-readonly secret/dev/cms/nexus/release secret/dev/cms/nexus/snapshot
-
-      - name: Build Dependency Tree
-        if: env.pom_found == 'true'
-        id: dependencytree
-        run: mvn dependency:tree -DskipTests=true -DoutputFile=maven_dep_tree.txt
-        continue-on-error: true
-
-      - name: Build Dependency Tree with Clean Install
-        if: ${{ failure() || steps.dependencytree.outcome == 'failure' }}
-        run: |
-          mvn clean install -Dmaven.test.skip=true
-          mvn dependency:tree -DskipTests=true -DoutputFile=maven_dep_tree.txt
-
-      - name: Upload Dependency Tree Artifact
-        if: env.pom_found == 'true'
-        uses: actions/upload-artifact@v3
-        with:
-          name: mavendeptree
-          path: maven_dep_tree.txt
-  
-  semgrep:
-    needs: buildmavenDepTree
-    name: Scan
-    runs-on: ubuntu-20.04
-    env:
-      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
-    container:
-      image: semgrep/semgrep
-    steps:
-      - uses: actions/checkout@v3
-      - name: Download artifact from previous job
-        if: ${{ needs.buildmavenDepTree.outputs.pom_exists == 'true' }}
-        uses: actions/download-artifact@v3
-        with:
-          name: mavendeptree
-      - name: Run Semgrep Supply Chain
-        if: ${{ needs.buildmavenDepTree.outputs.pom_exists == 'true' }}
-        run: |
-          semgrep ci --supply-chain
