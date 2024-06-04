@@ -37,8 +37,6 @@ jobs:
           echo "Repo Name: ${REPOSITORY_NAME}"
           echo "Repo Full Name: ${SEMGREP_REPO_NAME}"
           git clone ${modified_url} cloned-repo          
-          # show directory contents of root folder
-          ls -l cloned-repo
           git config --global --add safe.directory /__w/nn-zcs/nn-zcs
           cd cloned-repo
           git status
