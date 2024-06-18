@@ -124,7 +124,7 @@ jobs:
         semgrep_repos = json.loads(r.text)
 
         org_id = get_deployment_id(semgrep_token)
-        r = requests.post(f"https://semgrep.dev/api/v1/deployments/{org_id}/dependencies/repositories
+        r = requests.post(f"https://semgrep.dev/api/v1/deployments/{org_id}/dependencies/repositories")
         if r.status_code != 200:
             logging.error("Getting list of repositories with dependencies from Semgrep failed - please check Semgrep API token")
             sys.exit(f'Get failed: {r.text}')
