@@ -41,6 +41,16 @@ jobs:
         import sys
         import logging
 
+        # Function to get 
+        def get_deployment_id(token):
+            headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
+            r = requests.get('https://semgrep.dev/api/v1/deployments',headers=headers)
+            if r.status_code != 200:
+                sys.exit(f'Could not get deployment: {r.status_code} {r.text}')
+            org_id = str(r.json()['deployments'][0].get('id'))
+            print("Accessing org: " + org_id)
+            return org_id
+        
         # Function to convert debug level from string to logging module constant
         def get_debug_level(level_str):
             return {
@@ -101,34 +111,9 @@ jobs:
             repos.extend(page_repos)
             page += 1
         logging.debug(f"Read list of repos from GitHub API successful- number of repos = {len(repos)} ")
-        
-        # Read list of repos in daily.csv and weekly.csv
-        daily_df = pd.read_csv('daily.csv', header=None)
-        logging.debug(f"Daily.csv read successful- number of repos in daily.csv = {len(daily_df)} ")
-        weekly_df = pd.read_csv('weekly.csv', header=None)
-        logging.debug(f"Weekly.csv read successful- number of repos in weekly.csv = {len(weekly_df)} ")
-        
-        daily_repos = daily_df[0].tolist()
-        logging.debug(f"daily_repos created- length = {len(daily_repos)} ")
-        weekly_repos = weekly_df[0].tolist()
-        logging.debug(f"weekly_repos created- length = {len(weekly_repos)} ")
-        github_repos = [repo['name'] for repo in repos]
-        logging.debug(f"github_repos created- length = {len(github_repos)} ")
 
-        daily_repos_not_in_github_repos = [item for item in daily_repos if item not in github_repos]
-        logging.debug(f"daily_repos_not_in_github_repos created- length = {len(daily_repos_not_in_github_repos)} ")
-        weekly_repos_not_in_github_repos = [item for item in weekly_repos if item not in github_repos]
-        logging.debug(f"weekly_repos_not_in_github_repos created- length = {len(weekly_repos_not_in_github_repos)} ")
-
-        df_daily_repos_not_in_github_repos = pd.DataFrame(daily_repos_not_in_github_repos)
-        df_weekly_repos_not_in_github_repos = pd.DataFrame(weekly_repos_not_in_github_repos)
-
-        df_daily_repos_not_in_github_repos.to_csv('daily_repos_not_in_github_repos.csv', index=False)
-        logging.debug("df_daily_repos_not_in_github_repos written to file")
-        df_weekly_repos_not_in_github_repos.to_csv('weekly_repos_not_in_github_repos.csv', index=False)
-        logging.debug("df_weekly_repos_not_in_github_repos written to file")
-
-        headers = {"Accept": "application/json", "Authorization": "Bearer " + os.environ['SEMGREP_API_WEB_TOKEN']}
+        semgrep_token = os.environ['SEMGREP_API_WEB_TOKEN']
+        headers = {"Accept": "application/json", "Authorization": "Bearer " + semgrep_token}
         params =  {"page_size": 3000}
 
         r = requests.get(f"https://semgrep.dev/api/v1/deployments/{os.environ['SEMGREP_DEPLOYMENT_SLUG']}/projects?page=0", params=params, headers=headers)
@@ -138,8 +123,8 @@ jobs:
 
         semgrep_repos = json.loads(r.text)
 
-        # TODO-Sebas: add call to get list of List repositories with dependencies
-        r = requests.post(f"https://semgrep.dev/api/v1/deployments/8849/dependencies/repositories
+        org_id = get_deployment_id(semgrep_token)
+        r = requests.post(f"https://semgrep.dev/api/v1/deployments/{org_id}/dependencies/repositories
         if r.status_code != 200:
             logging.error("Getting list of repositories with dependencies from Semgrep failed - please check Semgrep API token")
             sys.exit(f'Get failed: {r.text}')
@@ -148,8 +133,16 @@ jobs:
 
         semgrep_repos_dep_details = json.loads(r.text)
 
-        # merge 2 DF's based on ID
-        semgrep_repos = merge(semgrep_repos, semgrep_repos_dep_details)
+        # Create a new list to store the merged results
+        merged_results = []
+    
+        # Iterate over repositorySummaries and projects to find matching ids and merge them
+        for repo in semgrep_repos_dep_details['repositorySummaries']:
+            repo_id = repo['id']
+            for project in semgrep_repos['projects']:
+                if project['id'] == repo_id:
+                    merged_result = {**repo, **project}
+                    merged_results.append(merged_result)
         
         coverage_data = []
         
@@ -162,24 +155,22 @@ jobs:
             repo_empty_state = is_repo_empty(repo_full_name, pat)
 
             latest_scan = None
-            for sg_repo in semgrep_repos['projects']:
+            for sg_repo in merged_results:
                 if sg_repo['name'] == repo_full_name:
                     latest_scan = sg_repo['latest_scan_at']
+                    sca_coverage = 1
+                else:
+                    sca_coverage = 0
                     break
             
             if latest_scan is None:
                 logging.info(f"{repo_name} not scanned by Semgrep yet")
             
-            daily_mark = 1 if repo_name in daily_repos else 0
-            weekly_mark = 1 if repo_name in weekly_repos else 0
-            not_covered = 1 if (daily_mark + weekly_mark == 0) else 0
-            duplicate_scans = 1 if (daily_mark + weekly_mark == 2) else 0
-            
-            coverage_data.append([repo_name, daily_mark, weekly_mark, not_covered, duplicate_scans, latest_scan, created_at, html_url, repo_empty_state])
-            logging.debug(f"processing repo end- {repo_full_name}: {repo_name} , {daily_mark}, {weekly_mark}, {not_covered}, {duplicate_scans}, {latest_scan}, {created_at}, {html_url}, {repo_empty_state}")
+            coverage_data.append([repo_name, sca_coverage, latest_scan, created_at, html_url, repo_empty_state])
+            logging.debug(f"processing repo end- {repo_full_name}: {repo_name} , {sca_coverage}, {latest_scan}, {created_at}, {html_url}, {repo_empty_state}")
 
         
-        coverage_df = pd.DataFrame(coverage_data, columns=['Repository', 'Daily', 'Weekly', 'Not Covered', 'Duplicate Scans', 'Latest Scan', 'Created At', 'URL', 'Is Repo Empty'])
+        coverage_df = pd.DataFrame(coverage_data, columns=['Repository', 'SCA Coverage', 'Latest Scan', 'Created At', 'URL', 'Is Repo Empty'])
         coverage_df.to_csv('coverage_sca.csv', index=False)
       
       shell: python
