@@ -157,8 +157,9 @@ jobs:
 
             latest_scan = None
             for sg_repo in merged_results:
-                logging.debug(f"processing Semgrep repo start - sg_repo['name']")
-                if sg_repo['name'] == repo_full_name:
+                semgrep_repo_name = sg_repo['name']
+                logging.debug(f"processing Semgrep repo start - {semgrep_repo_name}")
+                if semgrep_repo_name == repo_full_name:
                     logging.debug("Repo with dependencies!")
                     latest_scan = sg_repo['latest_scan_at']
                     sca_coverage = 1
