@@ -149,18 +149,21 @@ jobs:
         
         for repo in repos:
             repo_name = repo['name']
-            logging.debug(f"processing repo start- {repo_name}")
             repo_full_name = repo['full_name']
+            logging.debug(f"processing GitHub repo start - {repo_full_name}")
             created_at = repo['created_at']
             html_url = repo['html_url']
             repo_empty_state = is_repo_empty(repo_full_name, pat)
 
             latest_scan = None
             for sg_repo in merged_results:
+                logging.debug(f"processing Semgrep repo start - sg_repo['name']")
                 if sg_repo['name'] == repo_full_name:
+                    logging.debug("Repo with dependencies!")
                     latest_scan = sg_repo['latest_scan_at']
                     sca_coverage = 1
                 else:
+                    logging.debug("Repo without dependencies!")
                     sca_coverage = 0
                     break
             
@@ -168,7 +171,7 @@ jobs:
                 logging.info(f"{repo_name} not scanned by Semgrep yet")
             
             coverage_data.append([repo_name, sca_coverage, latest_scan, created_at, html_url, repo_empty_state])
-            logging.debug(f"processing repo end- {repo_full_name}: {repo_name} , {sca_coverage}, {latest_scan}, {created_at}, {html_url}, {repo_empty_state}")
+            logging.debug(f"processing repo end - {repo_full_name}: {repo_name} , {sca_coverage}, {latest_scan}, {created_at}, {html_url}, {repo_empty_state}")
 
         
         coverage_df = pd.DataFrame(coverage_data, columns=['Repository', 'SCA Coverage', 'Latest Scan', 'Created At', 'URL', 'Is Repo Empty'])
@@ -176,7 +179,7 @@ jobs:
       
       shell: python
       
-    - name: Upload coverage.CSV as Artifact
+    - name: Upload coverage_sca.csv as Artifact
       uses: actions/upload-artifact@v2
       with:
         name: semgrep-coverage-sca-report.csv
