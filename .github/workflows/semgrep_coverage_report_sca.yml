@@ -1,4 +1,4 @@
-name: Semgrep Coverage Report
+name: Semgrep SCA Coverage Report
 
 on:
   # Scan on-demand through GitHub Actions interface:
