@@ -123,22 +123,46 @@ jobs:
             return semgrep_repos
 
         ############################################
+        # Function to iterate thorugh all the items given an endpoint
+        ############################################
+        def retrieve_paginated_data(endpoint, kind, headers):
+            """
+            Generalized function to retrieve multiple pages of data.
+            Returns all data as a JSON string (not a Python dict!) in the same format 
+            as the API would if it weren't paginated.
+            """
+            # Initialize values
+            data_list = []
+            hasMore = True
+            page = -1
+            
+            while (hasMore == True):
+                page = page + 1
+                payload = {"pageSize": 100, "page": page}
+                r = requests.post(f"{endpoint}", headers=headers, json=payload) 
+                if r.status_code != 200:
+                    sys.exit(f'Get failed: {r.text}')
+                data = r.json()
+                hasMore = data['hasMore']
+                data_list.extend(data.get(kind))
+            return json.dumps({ f"{kind}": data_list})
+        
+        
+        ############################################
+        # Function to get all Semgrep projects with dependencies
+        ############################################
+        def get_repo_with_dependencies(org_id, headers):
+            projects = retrieve_paginated_data(f"https://semgrep.dev/api/v1/deployments/{org_id}/dependencies/repositories", "repositorySummaries", headers=headers)
+            return projects
+
+        ############################################
         # Function to get all Semgrep projects with dependencies
         ############################################
         def get_semgrep_dep_repos():
             semgrep_token = os.environ['SEMGREP_APP_TOKEN']
             org_id = get_deployment_id(semgrep_token)
             headers = {"Accept": "application/json", "Authorization": "Bearer " + semgrep_token}
-            payload = {"pageSize": 100}
-            r = requests.post(f"https://semgrep.dev/api/v1/deployments/{org_id}/dependencies/repositories",headers=headers,json=payload)
-            if r.status_code != 200:
-                logging.error("Getting list of repositories with dependencies from Semgrep failed - please check Semgrep API token")
-                sys.exit(f'Get failed: {r.text}')
-    
-            logging.debug("Getting list of repositories with dependencies from Semgrep successful")
-
-            semgrep_repos_dep_details = json.loads(r.text)
-            return semgrep_repos_dep_details
+            return get_repo_with_dependencies(org_id, headers)
 
         ############################################
         # Function to merge two dataframes
