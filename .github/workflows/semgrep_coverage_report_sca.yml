@@ -167,8 +167,8 @@ jobs:
         # Create a new list to store the merged results
         merged_results = []
     
-        # Iterate over semgrep_repos and semgrep_repos_dep_details to find matching ids and merge them
-        for repo in semgrep_repos['projects']:
+        # Iterate over semgrep_all_repos and semgrep_repos_dep_details to find matching ids and merge them
+        for repo in semgrep_all_repos['projects']:
             repo_id = repo['id']
             found = false
             for project in semgrep_repos_dep_details['repositorySummaries']:
