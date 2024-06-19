@@ -223,8 +223,8 @@ jobs:
             if latest_scan is None:
                 logging.info(f"{repo_name} not scanned by Semgrep yet")
             
-            coverage_data.append([repo_name, sca_coverage, num_dependencies, latest_scan, created_at, html_url, repo_empty_state])
-            logging.debug(f"processing repo end - {repo_full_name}: {repo_name} , {sca_coverage}, {num_dependencies}, {latest_scan}, {created_at}, {html_url}, {repo_empty_state}")
+            coverage_data.append([repo_full_name, sca_coverage, num_dependencies, latest_scan, created_at, html_url, repo_empty_state])
+            logging.debug(f"processing repo end - {repo_full_name}: {repo_full_name} , {sca_coverage}, {num_dependencies}, {latest_scan}, {created_at}, {html_url}, {repo_empty_state}")
 
         
         coverage_df = pd.DataFrame(coverage_data, columns=['Repository', 'SCA Coverage', 'Num Dependencies', 'Latest Scan', 'Created At', 'URL', 'Is Repo Empty'])
