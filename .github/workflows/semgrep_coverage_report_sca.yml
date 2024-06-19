@@ -144,6 +144,9 @@ jobs:
         # Function to merge two dataframes
         ############################################
         def merge_semgrep_df(semgrep_all_repos, semgrep_repos_dep_details):
+
+            merged_results = []
+            
             # Create a set of ids from the first dictionary for quick lookup
             repo_ids = {repo['id'] for repo in semgrep_repos_dep_details['repositorySummaries']}
         
