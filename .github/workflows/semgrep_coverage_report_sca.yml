@@ -160,6 +160,8 @@ jobs:
                 if project['id'] not in repo_ids:
                     merged_result = {**project, 'numDependencies': 0}
                     merged_results.append(merged_result)
+                    
+            return merged_results
         
         # GitHub repository in the format "org_name/repo_name"
         full_repo_name = os.environ['GITHUB_REPOSITORY']
