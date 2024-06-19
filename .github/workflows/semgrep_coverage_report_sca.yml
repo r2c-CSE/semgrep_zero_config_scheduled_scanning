@@ -29,7 +29,7 @@ jobs:
       env:
         # Generate PAT with Read-Only access to all repos in your GH ORG
         PAT_READ_ONLY_CUSTOMER_REPO: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
-        SEMGREP_API_TOKEN:  ${{ secrets.SEMGREP_API_TOKEN }}
+        SEMGREP_APP_TOKEN:  ${{ secrets.SEMGREP_APP_TOKEN }}
         DEBUG_LEVEL: ${{ vars.COVERAGE_REPORT_DEBUG_LEVEL }}
 
       run: |
@@ -121,7 +121,7 @@ jobs:
             page += 1
         logging.debug(f"Read list of repos from GitHub API successful- number of repos = {len(repos)} ")
 
-        semgrep_token = os.environ['SEMGREP_API_TOKEN']
+        semgrep_token = os.environ['SEMGREP_APP_TOKEN']
         headers = {"Accept": "application/json", "Authorization": "Bearer " + semgrep_token}
         params =  {"page_size": 3000}
 
