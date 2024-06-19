@@ -122,6 +122,9 @@ jobs:
             semgrep_repos = json.loads(r.text)
             return semgrep_repos
 
+        ############################################
+        # Function to get all Semgrep projects with dependencies
+        ############################################
         def get_semgrep_dep_repos():
             semgrep_token = os.environ['SEMGREP_APP_TOKEN']
             org_id = get_deployment_id(semgrep_token)
@@ -136,6 +139,27 @@ jobs:
 
             semgrep_repos_dep_details = json.loads(r.text)
             return semgrep_repos_dep_details
+
+        ############################################
+        # Function to merge two dataframes
+        ############################################
+        def merge_semgrep_df(semgrep_all_repos, semgrep_repos_dep_details):
+            # Create a set of ids from the first dictionary for quick lookup
+            repo_ids = {repo['id'] for repo in semgrep_repos_dep_details['repositorySummaries']}
+        
+            # Iterate over semgrep_repos_dep_details and semgrep_all_repos to find matching ids and merge them
+            for repo in semgrep_repos_dep_details['repositorySummaries']:
+                repo_id = repo['id']
+                for project in semgrep_all_repos['projects']:
+                    if project['id'] == repo_id:
+                        merged_result = {**repo, **project}
+                        merged_results.append(merged_result)
+    
+            # Add items from the second dictionary that do not have a match in the first dictionary
+            for project in semgrep_all_repos['projects']:
+                if project['id'] not in repo_ids:
+                    merged_result = {**project, 'numDependencies': 0}
+                    merged_results.append(merged_result)
         
         # GitHub repository in the format "org_name/repo_name"
         full_repo_name = os.environ['GITHUB_REPOSITORY']
@@ -165,20 +189,7 @@ jobs:
         semgrep_repos_dep_details = get_semgrep_dep_repos()
         
         # Create a new list to store the merged results
-        merged_results = []
-    
-        # Iterate over semgrep_all_repos and semgrep_repos_dep_details to find matching ids and merge them
-        for repo in semgrep_all_repos['projects']:
-            repo_id = repo['id']
-            found = false
-            for project in semgrep_repos_dep_details['repositorySummaries']:
-                if project['id'] == repo_id:
-                    merged_result = {**repo, **project}
-                    merged_results.append(merged_result)
-                    found = true
-            if found == false:
-                    merged_result = {**repo}
-                    merged_results.append(merged_result)
+        merged_results = merge_semgrep_df(semgrep_all_repos, semgrep_repos_dep_details)
 
         logging.info(merged_results)
         coverage_data = []
