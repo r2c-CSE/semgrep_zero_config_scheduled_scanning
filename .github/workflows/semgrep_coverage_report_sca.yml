@@ -29,8 +29,7 @@ jobs:
       env:
         # Generate PAT with Read-Only access to all repos in your GH ORG
         PAT_READ_ONLY_CUSTOMER_REPO: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
-        SEMGREP_API_WEB_TOKEN:  ${{ secrets.SEMGREP_API_WEB_TOKEN }}
-        SEMGREP_DEPLOYMENT_SLUG: ${{ vars.SEMGREP_DEPLOYMENT_SLUG }}
+        SEMGREP_API_TOKEN:  ${{ secrets.SEMGREP_API_TOKEN }}
         DEBUG_LEVEL: ${{ vars.COVERAGE_REPORT_DEBUG_LEVEL }}
 
       run: |
@@ -48,9 +47,19 @@ jobs:
             if r.status_code != 200:
                 sys.exit(f'Could not get deployment: {r.status_code} {r.text}')
             org_id = str(r.json()['deployments'][0].get('id'))
-            print("Accessing org: " + org_id)
+            logging.info("Accessing org: " + org_id)
             return org_id
-        
+
+        # Function to get 
+        def get_deployment_slug_name(token):
+            headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
+            r = requests.get('https://semgrep.dev/api/v1/deployments',headers=headers)
+            if r.status_code != 200:
+                sys.exit(f'Could not get deployment: {r.status_code} {r.text}')
+            slug = str(r.json()['deployments'][0].get('slug'))
+            logging.info("Accessing org: " + slug)
+            return slug
+            
         # Function to convert debug level from string to logging module constant
         def get_debug_level(level_str):
             return {
@@ -112,11 +121,12 @@ jobs:
             page += 1
         logging.debug(f"Read list of repos from GitHub API successful- number of repos = {len(repos)} ")
 
-        semgrep_token = os.environ['SEMGREP_API_WEB_TOKEN']
+        semgrep_token = os.environ['SEMGREP_API_TOKEN']
         headers = {"Accept": "application/json", "Authorization": "Bearer " + semgrep_token}
         params =  {"page_size": 3000}
 
-        r = requests.get(f"https://semgrep.dev/api/v1/deployments/{os.environ['SEMGREP_DEPLOYMENT_SLUG']}/projects?page=0", params=params, headers=headers)
+        slug_name = get_deployment_slug_name(semgrep_token)
+        r = requests.get(f"https://semgrep.dev/api/v1/deployments/{slug_name}/projects?page=0", params=params, headers=headers)
         if r.status_code != 200:
             logging.error("Getting list of projects from Semgrep failed - please check Semgrep API token")
             sys.exit(f'Get failed: {r.text}')
@@ -138,9 +148,9 @@ jobs:
         merged_results = []
     
         # Iterate over repositorySummaries and projects to find matching ids and merge them
-        for repo in semgrep_repos_dep_details['repositorySummaries']:
+        for repo in semgrep_repos['projects']:
             repo_id = repo['id']
-            for project in semgrep_repos['projects']:
+            for project in semgrep_repos_dep_details[repositorySummaries]:
                 if project['id'] == repo_id:
                     merged_result = {**repo, **project}
                     merged_results.append(merged_result)
