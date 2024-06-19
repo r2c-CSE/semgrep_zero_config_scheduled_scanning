@@ -25,7 +25,7 @@ jobs:
         pip install requests
         pip install pandas
         
-    - name: Get list of repositories
+    - name: Generate SCA report
       env:
         # Generate PAT with Read-Only access to all repos in your GH ORG
         PAT_READ_ONLY_CUSTOMER_REPO: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
@@ -40,7 +40,9 @@ jobs:
         import sys
         import logging
 
-        # Function to get 
+        ############################################
+        # Function to get the Semgrep deployment ID
+        ############################################
         def get_deployment_id(token):
             headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
             r = requests.get('https://semgrep.dev/api/v1/deployments',headers=headers)
@@ -50,7 +52,9 @@ jobs:
             logging.info("Accessing org: " + org_id)
             return org_id
 
-        # Function to get 
+        ############################################
+        # Function to get the Semgrep deployment name
+        ############################################
         def get_deployment_slug_name(token):
             headers = {"Accept": "application/json", "Authorization": "Bearer " + token}
             r = requests.get('https://semgrep.dev/api/v1/deployments',headers=headers)
@@ -59,8 +63,9 @@ jobs:
             slug = str(r.json()['deployments'][0].get('slug'))
             logging.info("Accessing org: " + slug)
             return slug
-            
+        ############################################   
         # Function to convert debug level from string to logging module constant
+        ############################################
         def get_debug_level(level_str):
             return {
                 'DEBUG': logging.DEBUG,
@@ -75,6 +80,9 @@ jobs:
         print(f'Debug Level set to: {debug_level_str}')
         logging.basicConfig(level=get_debug_level(debug_level_str), format='%(asctime)s - %(levelname)s - %(message)s')
 
+        ############################################
+        # Function to check if a repo is empty or not
+        ############################################
         def is_repo_empty(repo_name, pat):
             """
             Check if a GitHub repository is empty using the GitHub API.
@@ -96,7 +104,37 @@ jobs:
             except requests.exceptions.RequestException as e:
                 logging.error(f"An error occurred while checking the repository: {e}")
                 return False  # Assuming False in case of an error
-        
+
+        ############################################
+        # Function to get all Semgrep projects
+        ############################################
+        def get_semgrep_all_repos():
+            semgrep_token = os.environ['SEMGREP_APP_TOKEN']
+            headers = {"Accept": "application/json", "Authorization": "Bearer " + semgrep_token}
+            params =  {"page_size": 3000}
+  
+            slug_name = get_deployment_slug_name(semgrep_token)
+            r = requests.get(f"https://semgrep.dev/api/v1/deployments/{slug_name}/projects?page=0", params=params, headers=headers)
+            if r.status_code != 200:
+              logging.error("Getting list of projects from Semgrep failed - please check Semgrep API token")
+              sys.exit(f'Get failed: {r.text}')
+  
+            semgrep_repos = json.loads(r.text)
+            return semgrep_repos
+
+        def get_semgrep_dep_repos():
+            semgrep_token = os.environ['SEMGREP_APP_TOKEN']
+            org_id = get_deployment_id(semgrep_token)
+            payload = {"pageSize": 100}
+            r = requests.post(f"https://semgrep.dev/api/v1/deployments/{org_id}/dependencies/repositories",headers=headers,json=payload)
+            if r.status_code != 200:
+                logging.error("Getting list of repositories with dependencies from Semgrep failed - please check Semgrep API token")
+                sys.exit(f'Get failed: {r.text}')
+    
+            logging.debug("Getting list of repositories with dependencies from Semgrep successful")
+
+            semgrep_repos_dep_details = json.loads(r.text)
+            return semgrep_repos_dep_details
         
         # GitHub repository in the format "org_name/repo_name"
         full_repo_name = os.environ['GITHUB_REPOSITORY']
@@ -121,38 +159,24 @@ jobs:
             page += 1
         logging.debug(f"Read list of repos from GitHub API successful- number of repos = {len(repos)} ")
 
-        semgrep_token = os.environ['SEMGREP_APP_TOKEN']
-        headers = {"Accept": "application/json", "Authorization": "Bearer " + semgrep_token}
-        params =  {"page_size": 3000}
+        semgrep_all_repos = get_semgrep_all_repos()
 
-        slug_name = get_deployment_slug_name(semgrep_token)
-        r = requests.get(f"https://semgrep.dev/api/v1/deployments/{slug_name}/projects?page=0", params=params, headers=headers)
-        if r.status_code != 200:
-            logging.error("Getting list of projects from Semgrep failed - please check Semgrep API token")
-            sys.exit(f'Get failed: {r.text}')
-
-        semgrep_repos = json.loads(r.text)
-
-        org_id = get_deployment_id(semgrep_token)
-        payload = {"pageSize": 100}
-        r = requests.post(f"https://semgrep.dev/api/v1/deployments/{org_id}/dependencies/repositories",headers=headers,json=payload)
-        if r.status_code != 200:
-            logging.error("Getting list of repositories with dependencies from Semgrep failed - please check Semgrep API token")
-            sys.exit(f'Get failed: {r.text}')
-
-        logging.debug("Getting list of repositories with dependencies from Semgrep successful")
-
-        semgrep_repos_dep_details = json.loads(r.text)
-
+        semgrep_repos_dep_details = get_semgrep_dep_repos()
+        
         # Create a new list to store the merged results
         merged_results = []
     
-        # Iterate over repositorySummaries and projects to find matching ids and merge them
+        # Iterate over semgrep_repos and semgrep_repos_dep_details to find matching ids and merge them
         for repo in semgrep_repos['projects']:
             repo_id = repo['id']
+            found = false
             for project in semgrep_repos_dep_details['repositorySummaries']:
                 if project['id'] == repo_id:
                     merged_result = {**repo, **project}
+                    merged_results.append(merged_result)
+                    found = true
+            if found == false:
+                    merged_result = {**repo}
                     merged_results.append(merged_result)
 
         logging.info(merged_results)
@@ -168,6 +192,7 @@ jobs:
 
             latest_scan = None
             sca_coverage = 0
+            num_dependencies = 0
             for sg_repo in merged_results:
                 semgrep_repo_name = sg_repo['name']
                 logging.debug(f"processing Semgrep repo start - {semgrep_repo_name}")
@@ -175,16 +200,17 @@ jobs:
                     logging.info("Repo with dependencies!")
                     latest_scan = sg_repo['latest_scan_at']
                     sca_coverage = 1
+                    num_dependencies = sg_repo['numDependencies']
                     break
             
             if latest_scan is None:
                 logging.info(f"{repo_name} not scanned by Semgrep yet")
             
-            coverage_data.append([repo_name, sca_coverage, latest_scan, created_at, html_url, repo_empty_state])
-            logging.debug(f"processing repo end - {repo_full_name}: {repo_name} , {sca_coverage}, {latest_scan}, {created_at}, {html_url}, {repo_empty_state}")
+            coverage_data.append([repo_name, sca_coverage, num_dependencies, latest_scan, created_at, html_url, repo_empty_state])
+            logging.debug(f"processing repo end - {repo_full_name}: {repo_name} , {sca_coverage}, {num_dependencies}, {latest_scan}, {created_at}, {html_url}, {repo_empty_state}")
 
         
-        coverage_df = pd.DataFrame(coverage_data, columns=['Repository', 'SCA Coverage', 'Latest Scan', 'Created At', 'URL', 'Is Repo Empty'])
+        coverage_df = pd.DataFrame(coverage_data, columns=['Repository', 'SCA Coverage', 'Num Dependencies', 'Latest Scan', 'Created At', 'URL', 'Is Repo Empty'])
         coverage_df.to_csv('coverage_sca.csv', index=False)
       
       shell: python
