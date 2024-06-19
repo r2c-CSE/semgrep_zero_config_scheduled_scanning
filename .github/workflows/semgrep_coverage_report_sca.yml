@@ -150,7 +150,7 @@ jobs:
         # Iterate over repositorySummaries and projects to find matching ids and merge them
         for repo in semgrep_repos['projects']:
             repo_id = repo['id']
-            for project in semgrep_repos_dep_details[repositorySummaries]:
+            for project in semgrep_repos_dep_details['repositorySummaries']:
                 if project['id'] == repo_id:
                     merged_result = {**repo, **project}
                     merged_results.append(merged_result)
