@@ -125,6 +125,7 @@ jobs:
         def get_semgrep_dep_repos():
             semgrep_token = os.environ['SEMGREP_APP_TOKEN']
             org_id = get_deployment_id(semgrep_token)
+            headers = {"Accept": "application/json", "Authorization": "Bearer " + semgrep_token}
             payload = {"pageSize": 100}
             r = requests.post(f"https://semgrep.dev/api/v1/deployments/{org_id}/dependencies/repositories",headers=headers,json=payload)
             if r.status_code != 200:
