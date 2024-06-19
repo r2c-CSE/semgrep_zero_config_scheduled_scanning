@@ -162,8 +162,9 @@ jobs:
             semgrep_token = os.environ['SEMGREP_APP_TOKEN']
             org_id = get_deployment_id(semgrep_token)
             headers = {"Accept": "application/json", "Authorization": "Bearer " + semgrep_token}
-            return get_repo_with_dependencies(org_id, headers)
-
+            repos_with_deps = get_repo_with_dependencies(org_id, headers)
+            return json.loads(repos_with_deps)
+            
         ############################################
         # Function to merge two dataframes
         ############################################
