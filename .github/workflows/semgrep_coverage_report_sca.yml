@@ -38,6 +38,7 @@ jobs:
         import pandas as pd
         import json
         import sys
+        import time
         import logging
 
         ############################################
@@ -134,16 +135,18 @@ jobs:
             # Initialize values
             data_list = []
             hasMore = True
-            page = -1
+            cursor = 0
             
             while (hasMore == True):
-                page = page + 1
-                payload = {"pageSize": 100, "page": page}
+                payload = {"pageSize": 100, "cursor": cursor}
                 r = requests.post(f"{endpoint}", headers=headers, json=payload) 
                 if r.status_code != 200:
                     sys.exit(f'Get failed: {r.text}')
                 data = r.json()
                 hasMore = data['hasMore']
+                cursor = data['cursor']
+                print(f"Waiting 5 seconds...cursor: ",{cursor})
+                time.sleep(5)
                 data_list.extend(data.get(kind))
             return json.dumps({ f"{kind}": data_list})
         
