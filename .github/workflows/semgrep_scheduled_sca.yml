@@ -123,6 +123,7 @@ jobs:
           repo_url = repo['clone_url']
           repo_clone_url = repo['clone_url']
 
+          ###########################################
           # check the existence of a pom.xml file:
           pom = False
     
@@ -140,13 +141,13 @@ jobs:
             # Check if 'pom.xml' is in the contents
             for item in contents:
               if item['name'] == 'pom.xml':
-                logging.info('Yes! there is a pom.xml') 
+                logging.info(f"Yes! there is a pom.xml in the repo: {repo_name}") 
                 pom = True
               else: 
-                logging.info('No! there is not a pom.xml') 
+                logging.info(f"No! there is not a pom.xml in the repo: {repo_name}") 
           else:
             logging.info(f"Failed to fetch repository contents. Status code: {response.status_code}")
-
+          ###########################################
           if  pom == True:
             logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
             logging.info("Repo Full Name: %s, Repo Clone URL: %s", repo_full_name, repo_clone_url)
