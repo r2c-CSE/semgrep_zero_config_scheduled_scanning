@@ -143,8 +143,6 @@ jobs:
               if item['name'] == 'pom.xml':
                 logging.info(f"Yes! there is a pom.xml in the repo: {repo_name}") 
                 pom = True
-              else: 
-                logging.info(f"No! there is not a pom.xml in the repo: {repo_name}") 
           else:
             logging.info(f"Failed to fetch repository contents. Status code: {response.status_code}")
           ###########################################
