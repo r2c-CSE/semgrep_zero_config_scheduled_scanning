@@ -145,8 +145,9 @@ jobs:
                 pom = True
           else:
             logging.info(f"Failed to fetch repository contents. Status code: {response.status_code}")
-          ###########################################
+          
           if  pom == True:
+          ###########################################
             logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
             logging.info("Repo Full Name: %s, Repo Clone URL: %s", repo_full_name, repo_clone_url)
               
