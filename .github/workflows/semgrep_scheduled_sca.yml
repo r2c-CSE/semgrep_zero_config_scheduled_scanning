@@ -131,6 +131,7 @@ jobs:
           repo = parts[-1]
     
           # GitHub API URL to get the contents of the repository root
+          logging.info('Checking if there is pom.xml in the root') 
           api_url = f'https://api.github.com/repos/{owner}/{repo}/contents/'
 
           # Send a GET request to the API
@@ -143,9 +144,12 @@ jobs:
             # Check if 'pom.xml' is in the contents
             for item in contents:
               if item['name'] == 'pom.xml':
+                logging.info('Yes! there is a pom.xml') 
                 pom = True
+              else: 
+                logging.info('No! there is not a pom.xml') 
           else:
-            print(f"Failed to fetch repository contents. Status code: {response.status_code}")
+            logging.info(f"Failed to fetch repository contents. Status code: {response.status_code}")
 
           if  pom == True:
             logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
