@@ -124,6 +124,19 @@ jobs:
             return semgrep_repos
 
         ############################################
+        # Function to Retry logic in case 504 error
+        ############################################
+        def make_request_with_retries(endpoint, headers, payload, retries=3):
+            for attempt in range(retries):
+                r = requests.post(f"{endpoint}", headers=headers, json=payload)
+                if r.status_code == 504:
+                    print(f"Request timed out (504), attempt {attempt + 1} of {retries}. Retrying in 5 seconds...")
+                    time.sleep(5)  # Wait before retrying
+                else:
+                    return r  # Return the response if it's not a 504
+            sys.exit("Request failed after 3 attempts due to 504 errors.")
+    
+        ############################################
         # Function to iterate thorugh all the items given an endpoint
         ############################################
         def retrieve_paginated_data(endpoint, kind, headers):
@@ -139,9 +152,11 @@ jobs:
             
             while (hasMore == True):
                 payload = {"pageSize": 100, "cursor": cursor}
-                r = requests.post(f"{endpoint}", headers=headers, json=payload) 
+                r = make_request_with_retries(endpoint, headers, payload)
+
                 if r.status_code != 200:
                     sys.exit(f'Get failed: {r.text}')
+                    
                 data = r.json()
                 hasMore = data['hasMore']
                 cursor = data['cursor']
