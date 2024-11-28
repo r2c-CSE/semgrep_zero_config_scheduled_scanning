@@ -137,7 +137,7 @@ jobs:
             sys.exit("Request failed after 3 attempts due to 504 errors.")
     
         ############################################
-        # Function to iterate thorugh all the items given an endpoint
+        # Function to iterate through all the items given an endpoint
         ############################################
         def retrieve_paginated_data(endpoint, kind, headers):
             """
@@ -159,8 +159,10 @@ jobs:
                     
                 data = r.json()
                 hasMore = data['hasMore']
-                cursor = data['cursor']
+                print(f"Is there more items to check: ",{hasMore})
                 print(f"Waiting 5 seconds...cursor: ",{cursor})
+                cursor = data['cursor']
+
                 time.sleep(5)
                 data_list.extend(data.get(kind))
             return json.dumps({ f"{kind}": data_list})
