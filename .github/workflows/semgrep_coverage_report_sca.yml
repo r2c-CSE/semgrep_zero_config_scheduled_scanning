@@ -161,7 +161,7 @@ jobs:
                 hasMore = data['hasMore']
                 print(f"Is there more items to check: ",{hasMore})
 
-                if hasMore == True:
+                if hasMore == False:
                     print(f"Waiting 5 seconds...cursor: ",{cursor})
                     cursor = data['cursor']
                     time.sleep(5)
