@@ -1,0 +1,92 @@
+name: Run Semgrep Scan on Dispatch
+
+on:
+  workflow_dispatch: {}
+  repository_dispatch:
+    types: [zcs-event-sca-lockfileless]
+
+jobs:
+  clone-repo-jdk17:
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+          
+      - name: Clone External Repository
+        run: |
+          # Replace 'https://' with 'https://{PAT}@' in the GIT_URL
+          modified_url=$(echo "${GIT_URL}" | sed "s|https://|https://${PAT_READ_ONLY_CUSTOMER_REPO}@|")
+          
+          echo "Original URL: ${GIT_URL}"
+          echo "Modified URL: ${modified_url}"
+          echo "Repo Name: ${REPOSITORY_NAME}"
+          echo "Repo Full Name: ${SEMGREP_REPO_NAME}"
+          git clone ${modified_url} cloned-repo          
+          # show directory contents of root folder
+          ls -l cloned-repo
+          git config --global --add safe.directory /__w/nn-zcs/nn-zcs
+          cd cloned-repo
+          git status
+          export SEMGREP_REPO_NAME=$SEMGREP_REPO_NAME
+          export SEMGREP_REPO_URL=$GIT_URL
+          export SEMGREP_BRANCH=$SEMGREP_BRANCH
+
+          apk update
+          apk add openjdk17 maven
+          semgrep ci --allow-local-builds --verbose --supply-chain          
+          semgrep ci
+        env:
+          # SEMGREP_REPO_NAME: ${{REPOSITORY_NAME}}
+          # SEMGREP_REPO_URL: ${{GIT_URL}}
+          GIT_URL: ${{ github.event.client_payload.git_url }}
+          REPOSITORY_NAME: ${{ github.event.client_payload.repository_name }}
+          PAT_READ_ONLY_CUSTOMER_REPO: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
+          SEMGREP_REPO_URL: ${{ github.event.client_payload.git_url }}
+          SEMGREP_REPO_NAME: ${{ github.event.client_payload.repository_full_name }}
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+          SEMGREP_BRANCH: ${{ github.event.client_payload.repository_default_branch }}
+
+  clone-repo-jdk8:
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+          
+      - name: Clone External Repository
+        run: |
+          # Replace 'https://' with 'https://{PAT}@' in the GIT_URL
+          modified_url=$(echo "${GIT_URL}" | sed "s|https://|https://${PAT_READ_ONLY_CUSTOMER_REPO}@|")
+          
+          echo "Original URL: ${GIT_URL}"
+          echo "Modified URL: ${modified_url}"
+          echo "Repo Name: ${REPOSITORY_NAME}"
+          echo "Repo Full Name: ${SEMGREP_REPO_NAME}"
+          git clone ${modified_url} cloned-repo          
+          # show directory contents of root folder
+          ls -l cloned-repo
+          git config --global --add safe.directory /__w/nn-zcs/nn-zcs
+          cd cloned-repo
+          git status
+          export SEMGREP_REPO_NAME=$SEMGREP_REPO_NAME
+          export SEMGREP_REPO_URL=$GIT_URL
+          export SEMGREP_BRANCH=$SEMGREP_BRANCH
+
+          apk update
+          apk add openjdk8 maven
+          semgrep ci --allow-local-builds --verbose --supply-chain          
+          semgrep ci
+        env:
+          # SEMGREP_REPO_NAME: ${{REPOSITORY_NAME}}
+          # SEMGREP_REPO_URL: ${{GIT_URL}}
+          GIT_URL: ${{ github.event.client_payload.git_url }}
+          REPOSITORY_NAME: ${{ github.event.client_payload.repository_name }}
+          PAT_READ_ONLY_CUSTOMER_REPO: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
+          SEMGREP_REPO_URL: ${{ github.event.client_payload.git_url }}
+          SEMGREP_REPO_NAME: ${{ github.event.client_payload.repository_full_name }}
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+          SEMGREP_BRANCH: ${{ github.event.client_payload.repository_default_branch }}      
