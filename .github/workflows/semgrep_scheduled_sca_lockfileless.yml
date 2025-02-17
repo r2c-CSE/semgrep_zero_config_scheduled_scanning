@@ -1,0 +1,172 @@
+name: SCA-Semgrep Scheduled Scan on Repos
+
+on:
+  # Scan on-demand through GitHub Actions interface:
+  workflow_dispatch: {}
+  # Schedule the CI job (this method uses cron syntax):
+  schedule:
+    - cron: '20 17 * * *' # Sets Semgrep to scan every day at 17:20 UTC.
+
+jobs:
+  get-list-of-repos-and-perform-semgrep-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        pip install requests
+        pip install pandas
+        pip install logging
+        
+    - name: Get list of repositories
+      env:
+        # Connect to Semgrep Cloud Platform through your SEMGREP_APP_TOKEN.
+        # Generate a token from Semgrep Cloud Platform > Settings
+        # and add it to your GitHub secrets.
+        SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+        # Generate PAT with Read-Only access to all repos in your GH ORG
+        PAT: ${{ secrets.PAT_READ_ONLY_CUSTOMER_REPO }}
+
+        # Generate PAT with permissions to initiate repository dispatch in AppSec repo in your AppSec GH ORG
+        PAT_REPOSITORY_DISPATCH_APPSEC_REPO: ${{ secrets.GITHUB_TOKEN }}  #Bearer ${{ secrets.GITHUB_TOKEN }}
+
+        # Name of the AppSec Repo where the scans will be performed
+        APPSEC_REPO_WHERE_SCANS_DONE: ${{ vars.APPSEC_REPO_WHERE_SCANS_DONE }}
+
+        # Name of the AppSec Org where the scans will be performed. This can be the same as the Org where other repos are
+        APPSEC_ORG_WHERE_SCANS_DONE: ${{ vars.APPSEC_ORG_WHERE_SCANS_DONE }}
+
+        # Wait time (in seconds) between triggering Semgrep Scans 
+        WAIT_TIME_BETWEEN_SCANS: ${{ vars.WAIT_TIME_BETWEEN_SCANS }}
+
+        # logging level
+        LOGGING_LEVEL: ${{ vars.LOGGING_LEVEL }}
+
+      run: |
+        import requests
+        import os
+        import requests
+        import logging
+        import time
+        import pandas as pd
+        import logging
+      
+        # Set up logging
+        # Get logging level from environment variable
+        log_level = os.getenv('LOGGING_LEVEL', 'INFO').upper()
+        
+        # Configure logging
+        logging.basicConfig(level=log_level,
+                            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        logging.info("Logging Level: %s", log_level)
+
+        # GitHub repository in the format "org_name/repo_name"
+        full_repo_name = os.environ['GITHUB_REPOSITORY']
+        # Extract the organization name
+        org_name = full_repo_name.split('/')[0]
+        logging.info("Organization Name: %s", org_name)
+        pat = os.environ['PAT']
+        headers = {'Authorization': f'token {pat}'}
+
+        repos = []
+        page = 1
+        while True:
+            url = f'https://api.github.com/orgs/{org_name}/repos?page={page}&per_page=100'
+            response = requests.get(url, headers=headers)
+            logging.debug("Requesting list of repos in Org: %s, page: %s" ,org_name, page)
+            logging.debug("Response Code: %s", response.status_code)
+            page_repos = response.json()
+            if not page_repos:
+                break
+            repos.extend(page_repos)
+            page += 1
+        
+        # response = requests.get(f'https://api.github.com/orgs/{org_name}/repos', headers=headers)
+        # repos = response.json()
+        
+        logging.debug("total number of repos: %s" ,len(repos))
+
+        # GitHub API URL for repository_dispatch
+        scanning_repo = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']
+        logging.info("APPSEC_REPO_WHERE_SCANS_DONE: %s", scanning_repo)
+        
+        scanning_org_name = os.environ['APPSEC_ORG_WHERE_SCANS_DONE']
+        logging.info("APPSEC_ORG_WHERE_SCANS_DONE: %s", scanning_org_name)
+
+        repo_dispatch_url = f'https://api.github.com/repos/{scanning_org_name}/{scanning_repo}/dispatches'
+        logging.debug("Repo Dispatch URL: %s", repo_dispatch_url)
+          
+        # Headers for the request
+        # token below allows to make Repository Dispatch calls to the GH repo/ GH Org where the scans will be done
+        token = os.environ['PAT_REPOSITORY_DISPATCH_APPSEC_REPO']
+        headers = {
+            'Authorization': f'Bearer {token}', 
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        for repo in repos:			
+          repo_name = repo['name']
+
+          repo_full_name = repo['full_name']
+          repo_default_branch = repo['default_branch']
+          logging.info('The value "%s" exists', repo_name) 
+            
+          repo_url = repo['clone_url']
+          repo_clone_url = repo['clone_url']
+
+          ###########################################
+          # check the existence of a pom.xml file:
+          pom = False
+    
+          # GitHub API URL to get the contents of the repository root
+          logging.info('Checking if there is pom.xml in the root') 
+          api_url = f'https://api.github.com/repos/{org_name}/{repo_name}/contents/'
+          logging.info(api_url) 
+          # Send a GET request to the API
+          response = requests.get(api_url)
+    
+          if response.status_code == 200:
+            # Parse the JSON response
+            contents = response.json()
+        
+            # Check if 'pom.xml' is in the contents
+            for item in contents:
+              if item['name'] == 'pom.xml':
+                logging.info(f"Yes! there is a pom.xml in the repo: {repo_name}") 
+                pom = True
+          else:
+            logging.info(f"Failed to fetch repository contents. Status code: {response.status_code}")
+          
+          if  pom == True:
+          ###########################################
+            logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
+            logging.info("Repo Full Name: %s, Repo Clone URL: %s", repo_full_name, repo_clone_url)
+              
+            # Payload for the repository_dispatch event
+            # Change 'event_type' and 'client_payload' as per your requirements			    
+            payload = {
+                'event_type': 'zcs-event-sca-lockfileless',
+                'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "repository_default_branch": repo_default_branch, "git_url": repo_clone_url }
+            }
+          
+            # Make the POST request
+            response = requests.post(repo_dispatch_url, headers=headers, json=payload)
+            logging.debug('Making Repository dispatch call for %s to %s / %s : %s', repo_name, scanning_org_name, scanning_repo, repo_dispatch_url)
+    
+            # Log the response from GitHub
+            logging.debug("Response Code: %s", response.status_code)
+    
+            wait_time = os.environ['WAIT_TIME_BETWEEN_SCANS']
+            logging.debug('wait time is: %s', wait_time)
+            time.sleep(int(wait_time)) #sleep for XX seconds before starting next scan
+          
+      shell: python
