@@ -36,8 +36,13 @@ jobs:
 
           apk update
           apk add openjdk17 maven
-          semgrep ci --allow-local-builds --verbose --supply-chain          
-          semgrep ci
+          semgrep ci --allow-local-builds --verbose
+          semgrep_ret=$?
+          # successful run shall return 0
+          if !semgrep_ret; then
+            echo "semgrep ci job finished successfully. Exit Github action job."
+            exit 0
+          fi
         env:
           # SEMGREP_REPO_NAME: ${{REPOSITORY_NAME}}
           # SEMGREP_REPO_URL: ${{GIT_URL}}
@@ -51,6 +56,8 @@ jobs:
 
   clone-repo-jdk8:
     runs-on: ubuntu-latest
+    needs: clone-repo-jdk17
+    if: needs.clone-repo-jdk17.result != 'success'
     container:
       image: semgrep/semgrep
     steps:
@@ -78,8 +85,7 @@ jobs:
 
           apk update
           apk add openjdk8 maven
-          semgrep ci --allow-local-builds --verbose --supply-chain          
-          semgrep ci
+          semgrep ci --allow-local-builds --verbose
         env:
           # SEMGREP_REPO_NAME: ${{REPOSITORY_NAME}}
           # SEMGREP_REPO_URL: ${{GIT_URL}}

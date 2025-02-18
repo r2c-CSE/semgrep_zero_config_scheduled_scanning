@@ -1,5 +1,4 @@
-name: SCA-Semgrep Scheduled Scan on Repos
-
+name: Semgrep-daily-all
 on:
   # Scan on-demand through GitHub Actions interface:
   workflow_dispatch: {}
@@ -92,8 +91,23 @@ jobs:
         
         # response = requests.get(f'https://api.github.com/orgs/{org_name}/repos', headers=headers)
         # repos = response.json()
+
+        # Replace 'your_file.csv' with the path to your CSV file
+        csv_file = 'daily.csv'
+        df = pd.read_csv(csv_file)
+
+        # Extract the list of repo names from the CSV file
+        # Replace 'repo_name' with the actual column name in your CSV
+        interested_repos = df['repo_name'].tolist()
         
+        # Filter the repos list
+        filtered_repos = [repo for repo in repos if repo['name'] in interested_repos]
+
+        filtered_repos_names = [repo['name'] for repo in filtered_repos]
+        logging.debug("list of filtered repos: %s", filtered_repos_names)
+
         logging.debug("total number of repos: %s" ,len(repos))
+        logging.debug("number of filtered repos: %s" ,len(filtered_repos))
 
         # GitHub API URL for repository_dispatch
         scanning_repo = os.environ['APPSEC_REPO_WHERE_SCANS_DONE']
@@ -113,22 +127,27 @@ jobs:
             'Accept': 'application/vnd.github.v3+json'
         }
         
-        for repo in repos:			
+        
+        for repo in filtered_repos:			
           repo_name = repo['name']
-
+          # Check if the value exists in any cell of the DataFrame
+          # if df.isin([repo_name]).any().any():
+          logging.info('The value "%s" exists in the daily scan list', repo_name)              
           repo_full_name = repo['full_name']
           repo_default_branch = repo['default_branch']
-          logging.info('The value "%s" exists', repo_name) 
-            
+
           repo_url = repo['clone_url']
           repo_clone_url = repo['clone_url']
+          logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
 
           ###########################################
-          # check the existence of a pom.xml file:
-          pom = False
+          # check the existence of a pom.xml or build.gradle.* file:
+          lockfileless = False
+          lockless_manifest = ["pom.xml", "build.gradle.kts", "build.gradle", "gradlew"]
+
     
           # GitHub API URL to get the contents of the repository root
-          logging.info('Checking if there is pom.xml in the root') 
+          logging.info('Checking if there is pom.xml or build.gradle.* in the root') 
           api_url = f'https://api.github.com/repos/{org_name}/{repo_name}/contents/'
           logging.info(api_url) 
           # Send a GET request to the API
@@ -138,35 +157,40 @@ jobs:
             # Parse the JSON response
             contents = response.json()
         
-            # Check if 'pom.xml' is in the contents
             for item in contents:
-              if item['name'] == 'pom.xml':
-                logging.info(f"Yes! there is a pom.xml in the repo: {repo_name}") 
-                pom = True
+              if item['name'] in lockless_manifest:
+                logging.info(f"Yes! lockless manifest detected in the repo: {repo_name}") 
+                lockfileless = True
           else:
             logging.info(f"Failed to fetch repository contents. Status code: {response.status_code}")
-          
-          if  pom == True:
           ###########################################
-            logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
-            logging.info("Repo Full Name: %s, Repo Clone URL: %s", repo_full_name, repo_clone_url)
-              
-            # Payload for the repository_dispatch event
-            # Change 'event_type' and 'client_payload' as per your requirements			    
+          
+          # Payload for the repository_dispatch event
+          # Change 'event_type' and 'client_payload' as per your requirements	
+          if  lockfileless == True:
             payload = {
                 'event_type': 'zcs-event-sca-lockfileless',
                 'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "repository_default_branch": repo_default_branch, "git_url": repo_clone_url }
             }
-          
-            # Make the POST request
-            response = requests.post(repo_dispatch_url, headers=headers, json=payload)
-            logging.debug('Making Repository dispatch call for %s to %s / %s : %s', repo_name, scanning_org_name, scanning_repo, repo_dispatch_url)
-    
-            # Log the response from GitHub
-            logging.debug("Response Code: %s", response.status_code)
-    
-            wait_time = os.environ['WAIT_TIME_BETWEEN_SCANS']
-            logging.debug('wait time is: %s', wait_time)
-            time.sleep(int(wait_time)) #sleep for XX seconds before starting next scan
+          else:                  
+            payload = {
+                'event_type': 'zcs-event',
+                'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "repository_default_branch": repo_default_branch, "git_url": repo_clone_url }
+            }
+      
+          # Make the POST request
+          response = requests.post(repo_dispatch_url, headers=headers, json=payload)
+          logging.debug('Making Repository dispatch call for %s to %s / %s : %s', repo_name, scanning_org_name, scanning_repo, repo_dispatch_url)
+
+          # Log the response from GitHub
+          logging.debug("Response Code: %s", response.status_code)
+
+
+
+          wait_time = os.environ['WAIT_TIME_BETWEEN_SCANS']
+          logging.debug('wait time is: %s', wait_time)
+          time.sleep(int(wait_time)) #sleep for XX seconds before starting next scan
+          # else:
+          #   logging.info('The value "%s" does not exist in the daily scan list', repo_name)
           
       shell: python

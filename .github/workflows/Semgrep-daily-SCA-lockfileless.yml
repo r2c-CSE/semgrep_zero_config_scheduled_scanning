@@ -1,5 +1,4 @@
-name: SCA-Semgrep Scheduled Scan on Repos
-
+name: Semgrep-daily-SCA-lockfileless
 on:
   # Scan on-demand through GitHub Actions interface:
   workflow_dispatch: {}
@@ -154,7 +153,7 @@ jobs:
             # Payload for the repository_dispatch event
             # Change 'event_type' and 'client_payload' as per your requirements			    
             payload = {
-                'event_type': 'zcs-event-sca-maven',
+                'event_type': 'zcs-event-sca-lockfileless',
                 'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "repository_default_branch": repo_default_branch, "git_url": repo_clone_url }
             }
           
