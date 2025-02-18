@@ -142,7 +142,7 @@ jobs:
 
           ###########################################
           # check the existence of a pom.xml file:
-          pom = False
+          lockfileless = False
     
           # GitHub API URL to get the contents of the repository root
           logging.info('Checking if there is pom.xml in the root') 
@@ -157,16 +157,16 @@ jobs:
         
             # Check if 'pom.xml' is in the contents
             for item in contents:
-              if item['name'] == 'pom.xml':
+              if contains(fromJson('["pom.xml", "build.gradle.kts", "build.gradle", "gradlew"]'), item['name'] )
                 logging.info(f"Yes! there is a pom.xml in the repo: {repo_name}") 
-                pom = True
+                lockfileless = True
           else:
             logging.info(f"Failed to fetch repository contents. Status code: {response.status_code}")
           ###########################################
           
           # Payload for the repository_dispatch event
           # Change 'event_type' and 'client_payload' as per your requirements	
-          if  pom == True:
+          if  lockfileless == True:
             payload = {
                 'event_type': 'zcs-event-sca-lockfileless',
                 'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "repository_default_branch": repo_default_branch, "git_url": repo_clone_url }
