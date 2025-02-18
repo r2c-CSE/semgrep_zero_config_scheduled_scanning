@@ -141,7 +141,7 @@ jobs:
           logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
 
           ###########################################
-          # check the existence of a pom.xml file:
+          # check the existence of a pom.xml or build.gradle.* file:
           lockfileless = False
           lockless_manifest = ["pom.xml", "build.gradle.kts", "build.gradle", "gradlew"]
 
@@ -157,7 +157,6 @@ jobs:
             # Parse the JSON response
             contents = response.json()
         
-            # Check if 'pom.xml' is in the contents
             for item in contents:
               if item['name'] in lockless_manifest:
                 logging.info(f"Yes! lockless manifest detected in the repo: {repo_name}") 
