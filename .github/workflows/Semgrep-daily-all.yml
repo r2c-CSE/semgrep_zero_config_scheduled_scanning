@@ -1,5 +1,4 @@
-name: DAILY- Semgrep Scheduled Scan on Repos
-
+name: Semgrep-daily-all
 on:
   # Scan on-demand through GitHub Actions interface:
   workflow_dispatch: {}
