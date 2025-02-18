@@ -41,9 +41,7 @@ jobs:
           # successful run shall return 0
           if !semgrep_ret; then
             echo "semgrep ci job finished successfully. Exit Github action job."
-            echo "exit_job=true" >> $GITHUB_ENV
-            echo "exit_job=true" >> $GITHUB_OUTPUT  # Use step output
-            exit $ret_code
+            exit 0
         env:
           # SEMGREP_REPO_NAME: ${{REPOSITORY_NAME}}
           # SEMGREP_REPO_URL: ${{GIT_URL}}
@@ -57,7 +55,8 @@ jobs:
 
   clone-repo-jdk8:
     runs-on: ubuntu-latest
-    if: steps.check_exit.outputs.exit_job != 'true'
+    needs: clone-repo-jdk17
+    if: needs.clone-repo-jdk17.result != 'success'
     container:
       image: semgrep/semgrep
     steps:
