@@ -143,7 +143,7 @@ jobs:
           ###########################################
           # check the existence of a pom.xml file:
           lockfileless = False
-          lockless-manifest = ["pom.xml", "build.gradle.kts", "build.gradle", "gradlew"]
+          lockless_manifest = ["pom.xml", "build.gradle.kts", "build.gradle", "gradlew"]
 
     
           # GitHub API URL to get the contents of the repository root
@@ -159,7 +159,7 @@ jobs:
         
             # Check if 'pom.xml' is in the contents
             for item in contents:
-              if item['name'] in lockless-manifest:
+              if item['name'] in lockless_manifest:
                 logging.info(f"Yes! lockless manifest detected in the repo: {repo_name}") 
                 lockfileless = True
           else:
