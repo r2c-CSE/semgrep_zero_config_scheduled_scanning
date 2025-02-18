@@ -147,7 +147,7 @@ jobs:
 
     
           # GitHub API URL to get the contents of the repository root
-          logging.info('Checking if there is pom.xml in the root') 
+          logging.info('Checking if there is pom.xml or build.gradle.* in the root') 
           api_url = f'https://api.github.com/repos/{org_name}/{repo_name}/contents/'
           logging.info(api_url) 
           # Send a GET request to the API
