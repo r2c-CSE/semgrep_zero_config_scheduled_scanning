@@ -157,7 +157,7 @@ jobs:
         
             # Check if 'pom.xml' is in the contents
             for item in contents:
-              if contains(fromJson('["pom.xml", "build.gradle.kts", "build.gradle", "gradlew"]'), item['name'] )
+              if contains(fromJson('["pom.xml", "build.gradle.kts", "build.gradle", "gradlew"]'), item['name']):
                 logging.info(f"Yes! there is a pom.xml in the repo: {repo_name}") 
                 lockfileless = True
           else:
