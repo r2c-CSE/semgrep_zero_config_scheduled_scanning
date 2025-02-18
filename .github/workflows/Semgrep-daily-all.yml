@@ -139,13 +139,43 @@ jobs:
           repo_url = repo['clone_url']
           repo_clone_url = repo['clone_url']
           logging.info("Repo Name: %s, Repo URL: %s", repo_name, repo_url)
-                        
+
+          ###########################################
+          # check the existence of a pom.xml file:
+          pom = False
+    
+          # GitHub API URL to get the contents of the repository root
+          logging.info('Checking if there is pom.xml in the root') 
+          api_url = f'https://api.github.com/repos/{org_name}/{repo_name}/contents/'
+          logging.info(api_url) 
+          # Send a GET request to the API
+          response = requests.get(api_url)
+    
+          if response.status_code == 200:
+            # Parse the JSON response
+            contents = response.json()
+        
+            # Check if 'pom.xml' is in the contents
+            for item in contents:
+              if item['name'] == 'pom.xml':
+                logging.info(f"Yes! there is a pom.xml in the repo: {repo_name}") 
+                pom = True
+          else:
+            logging.info(f"Failed to fetch repository contents. Status code: {response.status_code}")
+          ###########################################
+          
           # Payload for the repository_dispatch event
-          # Change 'event_type' and 'client_payload' as per your requirements			    
-          payload = {
-              'event_type': 'zcs-event',
-              'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "repository_default_branch": repo_default_branch, "git_url": repo_clone_url }
-          }
+          # Change 'event_type' and 'client_payload' as per your requirements	
+          if  pom == True:
+            payload = {
+                'event_type': 'zcs-event-sca-lockfileless',
+                'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "repository_default_branch": repo_default_branch, "git_url": repo_clone_url }
+            }
+          else:                  
+            payload = {
+                'event_type': 'zcs-event',
+                'client_payload': { "repository_name": repo_name, "repository_full_name": repo_full_name, "repository_default_branch": repo_default_branch, "git_url": repo_clone_url }
+            }
       
           # Make the POST request
           response = requests.post(repo_dispatch_url, headers=headers, json=payload)
@@ -153,6 +183,8 @@ jobs:
 
           # Log the response from GitHub
           logging.debug("Response Code: %s", response.status_code)
+
+
 
           wait_time = os.environ['WAIT_TIME_BETWEEN_SCANS']
           logging.debug('wait time is: %s', wait_time)
