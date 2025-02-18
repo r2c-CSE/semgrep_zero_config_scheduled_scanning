@@ -42,6 +42,7 @@ jobs:
           if !semgrep_ret; then
             echo "semgrep ci job finished successfully. Exit Github action job."
             exit 0
+          fi
         env:
           # SEMGREP_REPO_NAME: ${{REPOSITORY_NAME}}
           # SEMGREP_REPO_URL: ${{GIT_URL}}
