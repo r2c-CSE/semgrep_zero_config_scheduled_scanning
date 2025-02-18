@@ -1,5 +1,4 @@
-name: SCA-lockfileless-Semgrep Scheduled Scan on Repos
-
+name: Semgrep-daily-SCA-lockfileless
 on:
   # Scan on-demand through GitHub Actions interface:
   workflow_dispatch: {}
